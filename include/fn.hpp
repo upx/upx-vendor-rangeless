@@ -7095,6 +7095,11 @@ namespace impl
 
             /////////////////////////////////////////////////////////////////
 
+#if defined(__clang__) && (__clang_major__ < 15)
+// see https://github.com/llvm/llvm-project/issues/25257 (Bugzilla 24883)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-local-typedef"
+#endif
             auto operator()() -> maybe<value_type>
             {
                 // behave like a plain impl::transform in in-this-thread mode
@@ -7140,6 +7145,9 @@ namespace impl
                 queue.pop_front();
                 return { std::move(ret) };
             }
+#if defined(__clang__) && (__clang_major__ < 15)
+#pragma clang diagnostic pop
+#endif
         };
 
         RANGELESS_FN_OVERLOAD_FOR_SEQ(  async, map_fn, queue_cap, {} )
