@@ -49,6 +49,7 @@
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4068) // unknown pragmas (for GCC diagnostic push)
+#   pragma warning(disable: 4702) // unreachable code [info: failed to disable these locally]
 #endif
 
 
@@ -286,6 +287,10 @@ namespace impl
     ///
     /// This throws fn::end_seq::exception on construction, and is interpreted internally as end-of-inputs.
     /// This exception does not propagate outside of the API's boundaries.
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4702) // unreachable code
+#endif
     struct end_seq
     {
         // First I called it just "end", but want to avoid name confusion, because
@@ -332,7 +337,7 @@ namespace impl
             throw exception{};
         }
 
-#if 0 // MSVC 19.15 does not support noreturn
+#if 1 // MSVC 19.15 does not support noreturn
         template<typename T>
         [[ noreturn ]] operator T() const
         {
@@ -348,6 +353,9 @@ namespace impl
 #endif
 
     };
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 
 
@@ -414,6 +422,10 @@ namespace impl
     /////////////////////////////////////////////////////////////////////////
     /// Single-pass InputRange-adapter for nullary generators.
     ///
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4702) // unreachable code
+#endif
     template<typename Gen>
     class seq
     {
@@ -628,6 +640,9 @@ namespace impl
            bool m_ended     = false;
            bool m_resumable = false; // if true, do not throw if called begin() more than once.
     };
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
     /////////////////////////////////////////////////////////////////////
     template<typename Iterable>
@@ -6063,6 +6078,10 @@ static void run_tests()
             });
         };
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4706) // assignment within conditional expression
+#endif
         auto my_intersperse = [](auto delim)
         {
 #if 1
@@ -6107,6 +6126,9 @@ static void run_tests()
             });
 #endif
         };
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
         auto my_inclusive_scan = []
         {
