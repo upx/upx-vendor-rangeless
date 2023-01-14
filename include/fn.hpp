@@ -6435,6 +6435,7 @@ public:
         for(size_t i = 0; !try_lock(); i++) {
             std::this_thread::sleep_for(
                 std::chrono::microseconds(5)); // the actual time is greater, depends on scheduler
+            (void)i; // avoid clang warning: -Wunused-but-set-variable
         }
     }
 
