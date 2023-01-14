@@ -1,25 +1,25 @@
 /*
 ================================================================================
- 
+
                              PUBLIC DOMAIN NOTICE
                  National Center for Biotechnology Information
- 
+
   This software is a "United States Government Work" under the terms of the
   United States Copyright Act.  It was written as part of the author's official
-  duties as a United States Government employees and thus cannot be copyrighted. 
+  duties as a United States Government employees and thus cannot be copyrighted.
   This software is freely available to the public for use. The National Library
   of Medicine and the U.S. Government have not placed any restriction on its use
   or reproduction.
- 
+
   Although all reasonable efforts have been taken to ensure the accuracy and
   reliability of this software, the NLM and the U.S. Government do not and
   cannot warrant the performance or results that may be obtained by using this
   software. The NLM and the U.S. Government disclaim all warranties, expressed
   or implied, including warranties of performance, merchantability or fitness
   for any particular purpose.
- 
+
   Please cite NCBI in any work or product based on this material.
- 
+
 ================================================================================
 
   Author: Alex Astashyn
@@ -86,7 +86,7 @@ namespace impl
        };
 
        bool m_empty = true;
-     
+
     public:
         using value_type = T;
 
@@ -100,9 +100,9 @@ namespace impl
         maybe& operator=(const maybe&) = delete;
 
         maybe(T val) // NB[5]: taking by value here rather than by rvalue-reference,
-        {            // because T maye be e.g. int, whereas passed arg `const int`, 
-                     // e.g. from { std::move(*it) } in to_seq::operator(), 
-                     // when the underlying Iterable yields by const-reference 
+        {            // because T maye be e.g. int, whereas passed arg `const int`,
+                     // e.g. from { std::move(*it) } in to_seq::operator(),
+                     // when the underlying Iterable yields by const-reference
                      // - that will fail to compile.
             reset(std::move(val));
         }
@@ -141,7 +141,7 @@ namespace impl
             // https://stackoverflow.com/questi ons/38541354/move-assignable-lambdas-in-clang-and-gcc/
             //
             // Another reason we can't simply move-assign to
-            // is that T may be a tuple containing 
+            // is that T may be a tuple containing
             // references, and we want to assign maybe<T> of such tuple
             // without assigning referenced objects as a side-effect,
             // unlike std::optional: (See NB[2])
@@ -151,17 +151,17 @@ namespace impl
             //     std::optional<std::tuple<int&>> opt_y = std::tie(y);
             //     opt_x = opt_y; // x is now 99. For our purposes this is NOT what we want.
             //
-            // For our purposes maybe<T> MUST behave similarly to a unique_ptr, 
+            // For our purposes maybe<T> MUST behave similarly to a unique_ptr,
             // except with stack-storage, where move-assignment simply transfers ownership.
             //
-            // We are not sacrificing any correctness or performance because no copies are ever made anywhere - 
+            // We are not sacrificing any correctness or performance because no copies are ever made anywhere -
             // all assignments and argument-passing are by-move; T does not even need to be copy-constructible/assignable.
             //
-            // We absolutely cannot rely on T::operator=(...), 
+            // We absolutely cannot rely on T::operator=(...),
             // but the user code, however, can always invoke it directly as appropriate, e.g.
             //      *nonempty_maybe_vec = other_vec; // uses vector's operator= (will reuse existing internal storage without reallocation when possible).
             //
-            // Note: We used to take T by value `reset(T val)`, since we're passing and taking by move, while also 
+            // Note: We used to take T by value `reset(T val)`, since we're passing and taking by move, while also
             // allowing the user-code to pass by implicit copy if they need to, but changed it to taking by rvalue-reference
             // `reset(T&& val)` only, to disallow the user-code to accidentally write inefficient code like
             // nonemmpty_maybe_vec.reset(other_vec), which destroys the currently-held vector, and makes a copy of
@@ -175,7 +175,7 @@ namespace impl
             // https://www.fluentcpp.com/2018/10/05/pros-cons-optional-references/
 
             reset();
-            
+
             new (&m_value) T(std::move(val));
 
             m_empty = false;
@@ -193,7 +193,7 @@ namespace impl
         {
             return !m_empty;
         }
-     
+
         T& operator*() noexcept
         {
             assert(!m_empty);
@@ -206,7 +206,7 @@ namespace impl
         }
 
         // I believe technically we need std::launder here, yet I couldn't
-        // find a single implementation of `optional` that launders 
+        // find a single implementation of `optional` that launders
         // memory after placement-new, or side-steps the issue.
         //
         //      https://en.cppreference.com/w/cpp/types/aligned_storage (static_vector example)
@@ -221,7 +221,7 @@ namespace impl
         const T& operator*() const noexcept
         {
             assert(!m_empty);
-            
+
 #if __cplusplus >= 201703L
             return *std::launder(&m_value);
 #else
@@ -241,8 +241,8 @@ namespace impl
             return { fn(std::move(**this)) };
         }
 #endif
-     
-        ~maybe() 
+
+        ~maybe()
         {
             reset();
         }
@@ -254,8 +254,8 @@ namespace impl
 
     struct pr_lowest {};
     struct pr_low     : pr_lowest {};
-    struct pr_high    : pr_low    {};  
-    struct pr_highest : pr_high   {};  
+    struct pr_high    : pr_low    {};
+    struct pr_highest : pr_high   {};
 
     using resolve_overload = pr_highest;
 
@@ -290,7 +290,7 @@ namespace impl
         /* I chose to allow exception-based approach to singal end-of-inputs.
          *
          * This is a pythonic approach to signal end-of-inputs from a generator function.
-         * This is cleanest from the API perspective, allowing for very trivial 
+         * This is cleanest from the API perspective, allowing for very trivial
          * custom logic with fn::adapt, and also most straightforward under the hood
          * implementation-wise. Using exceptions for flow control is generally
          * considered a bad idea, but since the API is exeception-neutral, the
@@ -299,7 +299,7 @@ namespace impl
          *
          * Update: Switched the internals to monadic end-of-seq signaling by passing values
          * via maybe-wrapper everywhere. To allow easy usage to user-code if they
-         * can tolerate exception-handling overhead, the user-code gen-function is wrapped 
+         * can tolerate exception-handling overhead, the user-code gen-function is wrapped
          * in catch_end callable that will catch the end_seq::exception and will return
          * empty-maybe, adapting the gen-function from exception-based to empty-maybe representation.
          */
@@ -308,18 +308,18 @@ namespace impl
         {};
 
         // TODO: can we preallocate exception with std::make_exception_ptr
-        // and then reuse it with std::rethrow_exception, which would avoid 
+        // and then reuse it with std::rethrow_exception, which would avoid
         // allocation? This doesn't seem to make any difference on throughput, however.
         //
         // Related article on performance of exceptions:
         // http://nibblestew.blogspot.com/2017/01/measuring-execution-performance-of-c.html
 
 
-        // throw on construction or in conversion? 
+        // throw on construction or in conversion?
         // There are pros and cons, i.e.
-        // a user may simply do `fn::end_seq();` 
+        // a user may simply do `fn::end_seq();`
         // and expect it to take effect.
-        // 
+        //
         // Also,
         //      return cond ? ret : fn::end_seq();
         // will prevent copy-elision, one has to remember to std::move(ret).
@@ -329,7 +329,7 @@ namespace impl
         }
 
 #if 0 // MSVC 19.15 does not support noreturn
-        template<typename T>            
+        template<typename T>
         [[ noreturn ]] operator T() const
         {
             throw exception{};
@@ -345,7 +345,7 @@ namespace impl
 
     };
 
-    
+
 
 namespace impl
 {
@@ -377,7 +377,7 @@ namespace impl
         }
     };
 
-    // A type-erasing wrapper for a gen, wrapping it in a std::function, 
+    // A type-erasing wrapper for a gen, wrapping it in a std::function,
     // and providing value_type (so that InGen::value_type all over the place works).
     // An alternative would be to use a metafunction that computes value_type everywhere instead.
     template<typename T>
@@ -411,26 +411,26 @@ namespace impl
     /// Single-pass InputRange-adapter for nullary generators.
     ///
     template<typename Gen>
-    class seq 
+    class seq
     {
         // NB: This yields rvalue-references (`reference = value_type&&`)
         // Pros:
-        // 1) If the downstream function takes arg by value (e.g. to transform, for_each, foldl, etc), 
+        // 1) If the downstream function takes arg by value (e.g. to transform, for_each, foldl, etc),
         // it will be passed without making a copy.
         //
         // 2) We want to prevent user-code from making lvalue-references
         // to the iterator's value, that will be invalidated when the iterator is incremented.
         //
-        // Cons: move-iterators are not widely used, and an expression like `auto x = *it;` 
+        // Cons: move-iterators are not widely used, and an expression like `auto x = *it;`
         // leaves *it in moved-from state, and it may not be clear from the context that a move just happened.
-        // That said, the entire point of this library is so that the user-code does not 
+        // That said, the entire point of this library is so that the user-code does not
         // need to deal with iterators directly.
-    
+
     public:
         using value_type = typename Gen::value_type;
         static_assert(!std::is_reference<value_type>::value, "The type returned by the generator-function must be a value-type. Use std::ref if necessary.");
 
-        seq(Gen gen) 
+        seq(Gen gen)
             : m_gen( std::move(gen) ) // NB: must use parentheses here!
         {}
 
@@ -498,7 +498,7 @@ namespace impl
                 return *this;
             }
 
-#pragma GCC diagnostic push 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++" // insists operator++(int) should be returning iterator
             maybe<value_type> operator++(int) // to support *it++ usage
             {
@@ -528,7 +528,7 @@ namespace impl
         private:
 
             friend seq;
-           
+
             seq* m_parent;
         };
 
@@ -565,7 +565,7 @@ namespace impl
 
         /// By default, calling begin() a second time will throw, because
         /// the default expectation is that begin() will restart from the beginning,
-        /// which does not hold with seq, or any input-range for that matter. 
+        /// which does not hold with seq, or any input-range for that matter.
         /// This may be suppressed with .resumable(true),
         /// making it explicit that the user-code is aware that begin() will resume
         /// from the current state.
@@ -597,7 +597,7 @@ namespace impl
             }
 
             for(auto x = m_gen(); x; x = m_gen()) {
-                ret.push_back(std::move(*x)); 
+                ret.push_back(std::move(*x));
             }
 
             m_started = true;
@@ -607,14 +607,14 @@ namespace impl
         }
 
 
-    private: 
+    private:
        friend class iterator;
 
        // so that we can access private fields in constructor taking seq<OtherGen>
        template<typename U>
        friend class seq;
 
-       impl::maybe<value_type> m_current = {};  
+       impl::maybe<value_type> m_current = {};
                              // Last value returned by m_gen.
                              // Can't be simply T because T
                              // might not be default-constructible.
@@ -628,7 +628,7 @@ namespace impl
     /////////////////////////////////////////////////////////////////////
     template<typename Iterable>
     struct refs_gen
-    {    
+    {
         Iterable& cont; // maybe const
 
         using value_type = decltype(std::ref(*cont.begin()));
@@ -637,14 +637,14 @@ namespace impl
         decltype(cont.begin()) it; // may be iterator or const_iterator
 
         auto operator()() -> maybe<value_type>
-        {    
+        {
             if(it == cont.end()) {
-                return { }; 
+                return { };
             } else {
                 return { *it++ };
-            }    
-        }    
-    };   
+            }
+        }
+    };
 
 }   // namespace impl
 
@@ -673,7 +673,7 @@ namespace impl
             {
                 return out * 10 + in;
             });
-                
+
         VERIFY(sum == 45);
     @endcode
     */
@@ -684,7 +684,7 @@ namespace impl
         static_assert(!std::is_same<decltype(gen_fn()), void>::value, "You forgot a return-statement in your gen-function.");
         return { { std::move(gen_fn), false } };
     }
- 
+
     /////////////////////////////////////////////////////////////////////////
     /// @brief Adapt a reference to `Iterable` as `seq` yielding reference-wrappers.
     template<typename Iterable>
@@ -697,8 +697,8 @@ namespace impl
     }
 
     /// @}
-   
-    
+
+
 namespace impl
 {
     /////////////////////////////////////////////////////////////////////
@@ -715,7 +715,7 @@ namespace impl
         }
 
         template<typename T>
-        bool operator()(const std::reference_wrapper<T>& a, 
+        bool operator()(const std::reference_wrapper<T>& a,
                         const std::reference_wrapper<T>& b) const
         {
             return std::less<T>{}(a.get(), b.get());
@@ -731,7 +731,7 @@ namespace impl
         }
 
         template<typename T>
-        bool operator()(const std::reference_wrapper<T>& a, 
+        bool operator()(const std::reference_wrapper<T>& a,
                         const std::reference_wrapper<T>& b) const
         {
             return a.get() == b.get();
@@ -741,7 +741,7 @@ namespace impl
     template<typename T>
     int compare(const T& a, const T&b)
     {
-        return ( lt{}(a, b) ? -1 
+        return ( lt{}(a, b) ? -1
                : lt{}(b, a) ?  1
                :               0);
     }
@@ -756,7 +756,7 @@ namespace impl
                // when used as part of a tuple (e.g. in the big example
                // make_tuple(fn::by::decreasing(is_nc), ...); // compilation error if const T val; here
                // make_tuple(!is_nc, ...); // ok
-               // 
+               //
                // Having a const field also prevents the use of move-constructor
                // when passing by move.
 
@@ -804,7 +804,7 @@ namespace impl
 namespace by
 {
     // sort() / unique() are simply sort_by<identity> and unique_adjacent_by<identity>
-    struct identity 
+    struct identity
     {
         template<typename T>
         auto operator()(const T& x) const -> const T&
@@ -908,20 +908,20 @@ namespace by
     template<typename T>
     impl::gt<T> decreasing(T x)
     {
-        // Note: we could perfect-forward T instead of taking it by value, 
+        // Note: we could perfect-forward T instead of taking it by value,
         // such that return type is gt<const reference>,
         // but this would allow misuse such as
-        // fn::sorty_by([](const auto& x) 
+        // fn::sorty_by([](const auto& x)
         // {
         //      const auto key = x.get_key();
         //      return fn::by::decreasing(key);
         //      // if key is captured by reference,
         //      // it becomes dangling after return.
-        // });  
-        // Instead, will allow the user to explicitly 
+        // });
+        // Instead, will allow the user to explicitly
         // capture by-reference via reference-wrapper below, or as decreasing_ref.
         //
-        // Perhaps takes by forwarding reference and 
+        // Perhaps takes by forwarding reference and
         // assert that it's an rvalue-reference?
 
         return { std::move(x) };
@@ -1017,7 +1017,7 @@ namespace get
 
         using iterator = Iterator;
         using value_type = typename iterator::value_type;
-        
+
         Iterator begin() const { return it_beg; }
         Iterator end()   const { return it_end; }
 
@@ -1027,7 +1027,7 @@ namespace get
         /// This does not affect the underlying range.
         void erase(Iterator b, Iterator e)
         {
-            // We support the erase method to obviate view-specific overloads 
+            // We support the erase method to obviate view-specific overloads
             // for some hofs, e.g. take_while, take_first, drop_whille, drop_last, etc -
             // the container-specific overloads will work for views as well.
 
@@ -1114,20 +1114,20 @@ namespace get
 /////////////////////////////////////////////////////////////////////////
 /// @brief Implementations for corresponding static functions in fn::
 namespace impl
-{   
+{
     // Wrap an Iterable as gen-callable, yielding elements by move.
     struct to_seq
     {
         /////////////////////////////////////////////////////////////////////////
         // We compose seqs by yanking m_gen from the input seq,
         // wrapping it into a nullary callable (see gen) that will do the
-        // additional work (e.g. filter, transform, etc) and wrapping back as seq. 
+        // additional work (e.g. filter, transform, etc) and wrapping back as seq.
         // I.e. we're doing the monadic "burrito" technique.
         // See RANGELESS_FN_OVERLOAD_FOR_SEQ
-        // 
+        //
         // The alternative is to wrap any range with adapting seq, but
         // this results in a to_seq at every layer instead of the outermost one.
-        // 
+        //
         // So if we want to work with a user-provided input-range or a container lazily,
         // we first need to wrap it as seq that will yield elements by-move.
         template<typename Iterable>
@@ -1144,7 +1144,7 @@ namespace impl
             {
                 if(!started) {
                     started = true;
-                    it = inps.begin(); 
+                    it = inps.begin();
                         // r might not be a container (i.e. some input-range
                         // and begin()  may be non-const, so deferring until
                         // the first call to operator() rather than
@@ -1161,7 +1161,7 @@ namespace impl
                     return { std::move(*it) };
                 }
             }
-        }; 
+        };
 
         // pass-through if already a seq
         template<typename Gen>
@@ -1203,8 +1203,8 @@ namespace impl
         Vec operator()(Iterable src) const
         {
             // Note: this will not compile with std::set
-            // in conjunction with move-only value_type because 
-            // set's iterators are const, and std::move will try 
+            // in conjunction with move-only value_type because
+            // set's iterators are const, and std::move will try
             // and fail to use the copy-constructor.
 
             return this->operator()( Vec{
@@ -1213,16 +1213,16 @@ namespace impl
         }
 
         // an overload for map that will return a vector of
-        // std::vector<std::pair<Key,       Value>>> rather than 
+        // std::vector<std::pair<Key,       Value>>> rather than
         // std::vector<std::pair<const Key, Value>>>, which is map's
         // value_type.
         // We want to remove the const because otherwise the vector's
-        // functionality is crippled because the value-type is not 
+        // functionality is crippled because the value-type is not
         // move-assigneable, so we can't do anything useful with it.
         //
         // TODO: generalize this for sets and arbitrary associative containers,
         // pre- and post- c++17.
-        template<typename Key, 
+        template<typename Key,
                  typename Value,
                  typename Vec = std::vector<std::pair<Key, Value>>>
         Vec operator()(std::map<Key, Value> m) const
@@ -1237,7 +1237,7 @@ namespace impl
                                std::move(h.mapped()));
             }
 #else
-            for(auto it = m.begin(), it_end = m.end(); 
+            for(auto it = m.begin(), it_end = m.end();
                      it != it_end;
                      it = m.erase(it))
             {
@@ -1264,7 +1264,7 @@ namespace impl
 
             for(auto&& x : src) {
                 dest.insert(dest.end(), std::move(x));
-            }       
+            }
             return std::move(dest);
         }
 
@@ -1280,7 +1280,7 @@ namespace impl
 #else
             for(auto&& x : src) {
                 dest.insert(dest.end(), std::move(x));
-            }       
+            }
 #endif
             return std::move(dest);
         }
@@ -1322,7 +1322,7 @@ namespace impl
         bool operator()(const Iterable& iterable) const
         {
             for(const auto& x : iterable)
-                if(pred(x)) 
+                if(pred(x))
                     return ret;
             return !ret;
         }
@@ -1331,7 +1331,7 @@ namespace impl
     // NB[3]: In for_each, foldl, foldl_d, foldl_1 we don't really need
     // the overloads for seq, because seq is Iterable, but by providing
     // them we work with underlying gens directly, bypassing the iterator
-    // machinery layer of seq, potentially allowing the compiler to do 
+    // machinery layer of seq, potentially allowing the compiler to do
     // better job with optimization.
 
     /////////////////////////////////////////////////////////////////////
@@ -1347,17 +1347,17 @@ namespace impl
                 fn(*it);
             }
 
-            // Used to return by perfect-forwarding, i.e. 
+            // Used to return by perfect-forwarding, i.e.
             // return-type = Iterable&&, and return std::forward<Iterable>(src);
             //
             // The intent was to allow downstream stages
             // after for_each. However,
-            // 1) If Iterable is a single-pass seq, 
+            // 1) If Iterable is a single-pass seq,
             //    it's not usable after the loop (will cause runtime error
             //    if we try to iterate over it again).
-            // 2) -Weffc++ says "should return by value" when 
+            // 2) -Weffc++ says "should return by value" when
             //    Iterable is passed by rvalue.
-            // 
+            //
             // So instead, will treat for_each as lfold-into-void.
         }
 
@@ -1408,15 +1408,15 @@ namespace impl
         Ret operator()(Iterable&& src) && // rvalue-specific because init will be moved-from
         {                                 // (we have to, because Ret may be move-only)
 
-            static_assert(std::is_same<Ret, decltype(fold_op(std::move(init), *src.begin()))>::value, 
+            static_assert(std::is_same<Ret, decltype(fold_op(std::move(init), *src.begin()))>::value,
                          "Type of Init must be the same as the return-type of F");
-    
+
             for(auto it = src.begin(); it != src.end(); ++it) {
                 init = fold_op(std::move(init), *it);
             }
 
             // NB: can't use std::accumulate because it does not do the std::move(init)
-            // internally until c++20, so it won't compile with move-only types, 
+            // internally until c++20, so it won't compile with move-only types,
             // and will make copies for copyable types.
 
             return std::move(init);
@@ -1424,7 +1424,7 @@ namespace impl
 
         // See NB[3]
         template<typename Gen>
-        Ret operator()(seq<Gen> src) && 
+        Ret operator()(seq<Gen> src) &&
         {
             for(auto x = src.get_gen()(); x; x = src.get_gen()()) {
                 init = fold_op(std::move(init), std::move(*x));
@@ -1433,7 +1433,7 @@ namespace impl
             return std::move(init);
         }
     };
-            
+
     /////////////////////////////////////////////////////////////////////
     template<typename Op>
     struct foldl_d
@@ -1510,7 +1510,7 @@ namespace impl
             if(!x1) {
                 RANGELESS_FN_THROW("Expected nonempty.");
             }
-            
+
             auto init = std::move(*x1);
 
             for(auto x = src.get_gen()(); x; x = src.get_gen()()) {
@@ -1532,9 +1532,9 @@ namespace impl
     auto operator()(seq<InGen> in) const -> seq<gen<InGen>>                \
     {                                                                      \
         return { { std::move(in.get_gen()), __VA_ARGS__ } };               \
-    }                                                                
+    }
 
-    // Default implementation of operator() for cases where 
+    // Default implementation of operator() for cases where
     // there's no eager logic for Container-arg, and
     // we want to treat it the same as seq (overload above)
     // so we wrap Container as to_seq::gen and do same as above.
@@ -1559,7 +1559,7 @@ namespace impl
      -> seq<gen<to_seq::gen<view<Iterator>>>>                              \
     {                                                                      \
         return { { { std::move(v), { }, false }, __VA_ARGS__ } };          \
-    }    
+    }
 
     /////////////////////////////////////////////////////////////////////
     template<typename F>
@@ -1598,7 +1598,7 @@ namespace impl
         RANGELESS_FN_OVERLOAD_FOR_CONT( map_fn )
         // Given a container, we return a lazy seq rather than
         // transforming all elements eagerly, because inputs may be
-        // "small", while outputs may be "large" in terms of 
+        // "small", while outputs may be "large" in terms of
         // memory and/or computation, so we want to defer it.
     };
 
@@ -1621,7 +1621,7 @@ namespace impl
             const size_t win_size;
 
             auto operator()() -> maybe<value_type>
-            {                
+            {
                 if(!started) {
                     started = true;
 
@@ -1678,7 +1678,7 @@ namespace impl
             const size_t win_size;
 
             auto operator()() -> maybe<value_type>
-            {                
+            {
                 if(!queue.empty()) {
                     queue.pop_front();
                 }
@@ -1717,7 +1717,7 @@ namespace impl
             auto operator()() -> decltype(fn(gen))
             {
                 // fn may be taking gen by value [](auto gen){...},
-                // so the state of the original (possibly mutable) gen 
+                // so the state of the original (possibly mutable) gen
                 // will not be updated. We force passing by-reference here
                 // with reference-wrapper, such that the above construct
                 // in the user code invokes the original gen.
@@ -1734,11 +1734,11 @@ namespace impl
     // The implementation below was added to enable the user-code (fn)
     // interrogate the passed gen whether it can yield another value
     // (so the user-code can wrap-up without throwing), so it prefetches
-    // the next value from in_gen, and the gen-wrapper conversion to 
+    // the next value from in_gen, and the gen-wrapper conversion to
     // bool is false iff the prefetched maybe<...> is empty.
     //
     // The alternative is to have gen return a maybe<...>,
-    // but we want to isolate the user-code from 
+    // but we want to isolate the user-code from
     // implementation details.
     template<typename F>
     struct adapt
@@ -1802,7 +1802,7 @@ namespace impl
                 // its conversion to bool equals false. We
                 // catch it here and return empty-maybe exactly
                 // as we do in catch_end-wrapper.
-                try { 
+                try {
                     return { fn(gen_wr{ this }) };
 
                 } catch( const end_seq::exception& ) {
@@ -1816,7 +1816,7 @@ namespace impl
     };
 
 #endif // adapt
-   
+
     /////////////////////////////////////////////////////////////////////
     template<typename Pred>
     struct take_while
@@ -1853,7 +1853,7 @@ namespace impl
         Container operator()(Container cont) const
         {
             auto it = std::find_if_not(cont.begin(), cont.end(), pred);
-            cont.erase(it, cont.end()); 
+            cont.erase(it, cont.end());
             return cont;
         }
     };
@@ -1943,7 +1943,7 @@ namespace impl
 
             vec_t queue;
            size_t i;
-            
+
             auto operator()() -> maybe<value_type>
             {
                 if(queue.capacity() < cap) {
@@ -1958,7 +1958,7 @@ namespace impl
                     queue.push_back(std::move(*x));
                     ++i;
                 }
-                
+
                 auto& dest = queue[i++ % cap];
                 auto ret = std::move(dest);
                 auto x = gen();
@@ -2104,17 +2104,17 @@ namespace impl
 
         /////////////////////////////////////////////////////////////////////////
 
-        // If cont is passed as const-reference, 
+        // If cont is passed as const-reference,
         // make another container, copying only the
         // elements satisfying the predicate.
         template<typename Container>
         Container operator()(const Container& cont) const
         {
             Container ret{};
-            auto pred_copy = pred; // in case copy_if needs non-const access 
+            auto pred_copy = pred; // in case copy_if needs non-const access
             std::copy_if(cont.begin(),
-                         cont.end(), 
-                         std::inserter(ret, ret.end()), 
+                         cont.end(),
+                         std::inserter(ret, ret.end()),
                          pred_copy);
             return ret;
         }
@@ -2166,7 +2166,7 @@ namespace impl
         template<typename Container>
         auto x_EraseFrom(Container& cont, pr_high) const -> decltype(void(cont.front()))
         {                                                         // ^^^^^^^^^^ discussion below
-            // This overload must be made unpalatable to SFINAE unless 
+            // This overload must be made unpalatable to SFINAE unless
             // std::remove_if is viable for Container, e.g. feature-checking
             // as follows:
             //
@@ -2177,8 +2177,8 @@ namespace impl
             //     -> decltype(void( *cont.begin() = std::move(*cont.begin()) ))
             //  or -> decltype(std::swap(*cont.begin(), *cont.begin()))
             //
-            // For a std::map, even though map's value_type is not move-assignable, 
-            // (due to key being const, the lines below should not and would not compile, 
+            // For a std::map, even though map's value_type is not move-assignable,
+            // (due to key being const, the lines below should not and would not compile,
             // and yet SFINAE still considers this overload viable (??)
             //
             //     std::remove(cont.begin(), cont.end(), *cont.begin());
@@ -2187,7 +2187,7 @@ namespace impl
             // I'm not sure why SFINAE fails to reject it in the decltype,
             // resulting in ambiguous resolution of x_EraseFrom.
             //
-            // Anyway, that's why we're instead feature-testing for SequenceContainer 
+            // Anyway, that's why we're instead feature-testing for SequenceContainer
             // based the presence of cont.front()
             // https://en.cppreference.com/w/cpp/named_req/SequenceContainer
             //
@@ -2195,7 +2195,7 @@ namespace impl
             // a compiler bug. However, Leaving the cont.front() check in place for now
             // to support older compilers.
 
-            x_EraseRemove(cont); 
+            x_EraseRemove(cont);
         }
 
         // Low-priority overload where remove_if is not viable, but
@@ -2209,8 +2209,8 @@ namespace impl
                     std::declval<typename Container::key_type const&>())))
         {
             auto pred_copy = pred;
-            for(auto it = cont.begin(), it_end =cont.end(); 
-                     it != it_end; 
+            for(auto it = cont.begin(), it_end =cont.end();
+                     it != it_end;
                      it = pred_copy(*it) ? std::next(it)
                                          : cont.erase(it))
             {
@@ -2261,8 +2261,8 @@ namespace impl
 
             for(auto x = gen(); x; x = gen()) {
 
-                const auto which = ret.empty() ? 0 
-                                 : impl::compare(key_fn(ret.front()), 
+                const auto which = ret.empty() ? 0
+                                 : impl::compare(key_fn(ret.front()),
                                                  key_fn(*x)) * use_max;
                 if(which < 0) {
                     ret.clear();
@@ -2290,7 +2290,7 @@ namespace impl
             // TODO: Take Container as forwarding reference instead of by value
             // such that if it is passed by lvalue-reference we don't need to
             // copy all elements; will only copy the maximal ones.
-            // (copy or move value from the iterator depending on whether 
+            // (copy or move value from the iterator depending on whether
             // cont is lvalue or rvalue-reference?)
 
             // NB[2]: if we're taking lvalue of key_fn(element),
@@ -2305,11 +2305,11 @@ namespace impl
             //    or will not compile (if reference is const).
             //
             // 2) The value of key may become invalidated if referenced
-            //    element is assigned or moved from (explicitly, or under the hood, 
+            //    element is assigned or moved from (explicitly, or under the hood,
             //    e.g. while reallocating when a std::vector is resized in push_back,
             //    or when the element is moved to a different position by erase-remove
             //    algorithm.
-           
+
             // NB: we could reuse the same logic for both input and Container use-cases,
             // but having multi-pass capability with Container allows us to do less
             // memory churn (we only need to move elements-of-interest into ret).
@@ -2318,7 +2318,7 @@ namespace impl
 
             if(cont.empty())
                 return ret;
-            
+
             auto first_best_it = cont.begin();
             auto last_best_it  = cont.begin();
             size_t n = 1; // count of max-elements
@@ -2326,7 +2326,7 @@ namespace impl
             {
                 auto it = cont.begin();
                 for(++it; it != cont.end(); ++it) {
-                    const int which = impl::compare(key_fn(*it), 
+                    const int which = impl::compare(key_fn(*it),
                                                     key_fn(*first_best_it)) * use_max;
                     if(which < 0) {
                         ; // not-best
@@ -2346,15 +2346,15 @@ namespace impl
             ++first_best_it;
             ++last_best_it; // convert to end
 
-            for(auto it = first_best_it; it != last_best_it; ++it) 
-                if(impl::compare(key_fn(*it), 
+            for(auto it = first_best_it; it != last_best_it; ++it)
+                if(impl::compare(key_fn(*it),
                                  key_fn(ret.back())) * use_max >= 0)
             {
                 ret.push_back(std::move(*it));
             }
 
             return ret;
-            
+
 #if 0 // An example of what NOT to do:
             auto best_key = key_fn(*cont.begin());
             for(const auto& e : cont) {
@@ -2454,7 +2454,7 @@ namespace impl
             impl::require_iterator_category_at_least<std::bidirectional_iterator_tag>(v);
 
             using rev_it_t = std::reverse_iterator<Iterator>;
-            return { rev_it_t{ v.end()   }, 
+            return { rev_it_t{ v.end()   },
                      rev_it_t{ v.begin() } };
         }
     };
@@ -2464,7 +2464,7 @@ namespace impl
     /////////////////////////////////////////////////////////////////////
     // I made a decision to deviate from STL naming convention,
     // where std::sort is unstable, and made fn::sort/sort_by a stable-sort.
-    // 
+    //
     // I think STL should have followed the principle of least astonishment and made
     // std::sort a stable-sort, and have an additonal std::unstable_sort version.
     // (STL is known for its poor names that tend to surprise novice programmers).
@@ -2472,7 +2472,7 @@ namespace impl
     // and have an differently named (e.g. "unstable_sort") optimizing
     // version that can make additional assumptions about the inputs.
     //
-    // In real-life sort_by/group_all_by/unique_all_by use-cases we don't 
+    // In real-life sort_by/group_all_by/unique_all_by use-cases we don't
     // simply sort ints or strings where unstable-sort would do; rather,
     // we sort some objects by some subset of properties, where the sort-key only
     // partially differentiates between the objects, and a two objects
@@ -2500,8 +2500,8 @@ namespace impl
             // which is not move-assignable because of constness.
             static_assert(std::is_move_assignable<typename Iterable::value_type>::value, "value_type must be move-assignable.");
 
-            s_sort( src, 
-                    [this](const typename Iterable::value_type& x, 
+            s_sort( src,
+                    [this](const typename Iterable::value_type& x,
                            const typename Iterable::value_type& y)
                     {
                         return lt{}(key_fn(x), key_fn(y));
@@ -2529,14 +2529,14 @@ namespace impl
 
     // NB: initially thought of having stable_sort_by and unstable_sort_by versions,
     // and for unstable_sort_by/Container use std::sort, and for unstable_sort_by/seq<..>
-    // seq use lazy heap sort. The unstable-ness, however, is different between the two. 
+    // seq use lazy heap sort. The unstable-ness, however, is different between the two.
     // So instead decided to go with lazy_sort_by for both Container and seq<>
 
     // Initially dump all elements and heapify in O(n);
     // lazily yield elements with pop_heap in O(log(n))
     //
     // TODO: can we make this stable? E.g. falling-back on pointer comparison (probably not)
-    // or keeping a vector of std::pair<decltype(gen()), size_t> where ::second is the 
+    // or keeping a vector of std::pair<decltype(gen()), size_t> where ::second is the
     // original ordinal.
     template<typename F>
     struct lazy_sort_by
@@ -2559,7 +2559,7 @@ namespace impl
 
             auto operator()() -> maybe<value_type>
             {
-                auto op_gt = [this](const value_type& x, 
+                auto op_gt = [this](const value_type& x,
                                     const value_type& y)
                 {
                     return lt{}(key_fn(y), key_fn(x));
@@ -2614,13 +2614,13 @@ namespace impl
             // which is not move-assignable because of constness.
             static_assert(std::is_move_assignable<value_type>::value, "value_type must be move-assignable.");
 
-            auto op_gt = [this](const value_type& x, 
+            auto op_gt = [this](const value_type& x,
                                 const value_type& y)
             {
                 return lt{}(key_fn(y), key_fn(x));
             };
 
-            // NB: can't use priority_queue, because it provides 
+            // NB: can't use priority_queue, because it provides
             // const-only exposition of elements, so we can't use
             // it with move-only types.
 
@@ -2642,7 +2642,7 @@ namespace impl
 
             std::sort_heap(heap.begin(), heap.end(), op_gt);
             std::reverse(heap.begin(), heap.end());
-            
+
             return heap;
         }
     };
@@ -2655,12 +2655,12 @@ namespace impl
         // this for both
         // group_adjacent_by: key_fn:user-provided,      pred2=impl::eq
         // group_adjacent_if: key_fn=impl::by::identity, pred2:user-provided.
-        
+
                  const F key_fn;
         const BinaryPred pred2;
 
         /////////////////////////////////////////////////////////////////////
-        // A simple version that accumulates equivalent-group in a vector, 
+        // A simple version that accumulates equivalent-group in a vector,
         // and yield vector_t. This makes it easy to deal-with (no seq-of
         // seqs), but it needs to allocate a return std::vector per-group.
         // (Edit: unless the use-case supports recycling (see below))
@@ -2675,8 +2675,8 @@ namespace impl
             using inp_t      = typename InGen::value_type;
 
             using value_type = typename std::conditional<
-                                    std::is_same<inp_t, char>::value, 
-                                        std::string, 
+                                    std::is_same<inp_t, char>::value,
+                                        std::string,
                                         std::vector<inp_t> >::type;
 
             static_assert(std::is_move_assignable<value_type>::value, "value_type must be move-assignable.");
@@ -2715,7 +2715,7 @@ namespace impl
                 if(curr.empty()) {
                     return { };
                 }
-                
+
                 return std::move(curr);
             }
         };
@@ -2755,7 +2755,7 @@ namespace impl
                 dest.insert(dest.end(), std::move(*it));
             }
 
-            // If key_fn is e.g. [](auto&& x){ return std::tie(arg); } 
+            // If key_fn is e.g. [](auto&& x){ return std::tie(arg); }
             // then the return type will be std::tuple<X&> or std::tuple<const X&> depending
             // on constness of x, so the args passed to pred2 must be of the same constness,
             // or it will fail to match to pred2::operator(const T&, const T&)
@@ -2797,7 +2797,7 @@ namespace impl
                         const F key_fn;
                const BinaryPred pred2;   // returns true iff two elemens belong to same group
             maybe<element_type> current; // current element of the current group
-                           bool reached_subend; 
+                           bool reached_subend;
 
             /////////////////////////////////////////////////////////////////
 
@@ -2813,7 +2813,7 @@ namespace impl
                 std::swap(current, nxt);
                 return std::move(nxt);
             }
-            
+
             maybe<value_type> operator()() // return seq for next group
             {
                 if(!current) { // starting initial group
@@ -2822,7 +2822,7 @@ namespace impl
 
                     // NB: the user-code may have accessed the group only
                     // partially (or not at all), in which case we must skip
-                    // over the rest elements in the group until we reach 
+                    // over the rest elements in the group until we reach
                     // the next one.
                     while(!reached_subend) {
                         next();
@@ -2855,7 +2855,7 @@ namespace impl
         size_t operator()(const T&) const
         {
             // chunker is called with group_adjacent_by.
-            // If we had one call to key_fn per element, 
+            // If we had one call to key_fn per element,
             // we could chunk in groups of 10 like
             // elems % fn::group_adjacent_by([n = 0UL](const auto){ return n++/10; });
             //
@@ -2874,7 +2874,7 @@ namespace impl
     public:
         const F key_fn;
 
-        // group_all_by: convert input to vector, sort by key_fn, 
+        // group_all_by: convert input to vector, sort by key_fn,
         // and delegate to group_adjacent_by::gen
         //
         // (could instead delegate to the eager overload below,
@@ -2884,13 +2884,13 @@ namespace impl
         // allocate a separate std::vector per-group.
 
         template<typename Gen>  // Container or seq<...>
-        auto operator()(seq<Gen> inps) const -> 
+        auto operator()(seq<Gen> inps) const ->
             seq<
                 typename group_adjacent_by_t::template gen<
                     to_seq::gen<
                         std::vector<typename seq<Gen>::value_type>>>>
         {
-            return 
+            return
                 group_adjacent_by_t{ key_fn, {} }(
                     impl::to_seq{}(
                         sort_by<F>{ key_fn }(
@@ -2910,17 +2910,17 @@ namespace impl
                         impl::to_vector{}(
                             std::move(cont))))
         {
-#if 0 
+#if 0
             // An example of what not to do
             using key_t = remove_cvref_t<decltype(key_fn(*cont.begin()))>;
             std::map<key_t, Container, lt_t> m;
             for(auto&& x : cont) {
                 auto& dest = m[key_fn(x)];
-                dest.insert(dest.end(), std::move(x)); 
+                dest.insert(dest.end(), std::move(x));
                 // BUG: the key in the map just became invalidated
                 // after move(x), if it contained references to it.
             }
-            cont.clear(); 
+            cont.clear();
 
             std::vector<Container> ret;
             ret.reserve(m.size());
@@ -2932,7 +2932,7 @@ namespace impl
             // Can't also implement is as collect elems into
             // std::set<Container, decltype(opless_by_keyfn_on_element)>,
             // because if value_type is move-only, we won't be able
-            // to move-out the elements from the set since 
+            // to move-out the elements from the set since
             // set provides only const access to the elements.
 #else
             return group_adjacent_by_t{ key_fn, {} }(
@@ -2951,7 +2951,7 @@ namespace impl
     //
     // This is the bind operator for the List monad.
     //
-    // What do we name this? 
+    // What do we name this?
     //
     //    Haskell: concat
     //     Elixir: concat
@@ -2992,7 +2992,7 @@ namespace impl
             // explicitly make this move-only.
             gen& operator=(gen&&) = default;
                        gen(gen&&) = default;
-            
+
             gen& operator=(const gen&) = delete;
                        gen(const gen&) = delete;
 #endif
@@ -3005,7 +3005,7 @@ namespace impl
                     // the next call, because the user code consuming ret may have
                     // side-effects that affect how and whether the
                     // iterator is advanced, so we don't want to advance
-                    // it prematurely. 
+                    // it prematurely.
                     //
                     // For example, ret's type could be
                     // some proxy-object that will fetch an object from a stream,
@@ -3016,7 +3016,7 @@ namespace impl
 
                 while(!current_group || it == (*current_group).end()) {
                     current_group = gen();
-                    
+
                     if(!current_group) {
                         return { };
                     }
@@ -3032,7 +3032,7 @@ namespace impl
                                     //^^ simply {} does not compile with GCC-4.9.3
 
         /////////////////////////////////////////////////////////////////
-        
+
         template<typename Iterable,
                  typename Ret = typename Iterable::value_type>
         Ret operator()(Iterable src) const
@@ -3116,7 +3116,7 @@ namespace impl
             inps.erase(
                 std::unique(
                     inps.begin(), inps.end(),
-                    [this](const typename Iterable::value_type& x, 
+                    [this](const typename Iterable::value_type& x,
                            const typename Iterable::value_type& y)
                     {
                         return impl::eq{}(key_fn(x), key_fn(y));
@@ -3143,8 +3143,8 @@ namespace impl
 
             using value_type = typename InGen::value_type;
 
-            using key_t = typename std::decay<decltype(key_fn(*gen()))>::type; 
-            // key_fn normally yields a const-reference, but we'll be storing 
+            using key_t = typename std::decay<decltype(key_fn(*gen()))>::type;
+            // key_fn normally yields a const-reference, but we'll be storing
             // keys in a map, so need to decay the type (remove_cvref would do).
 
             static_assert(std::is_default_constructible<key_t>::value, "The type returned by key_fn in unique_all_by must be default-constructible and have the lifetime independent of arg.");
@@ -3153,7 +3153,7 @@ namespace impl
             // when the referenced object goes out of scope, so we guard against
             // these by requiring default-constructible on key_t.
 
-            using seen_t = std::map<key_t, bool>; 
+            using seen_t = std::map<key_t, bool>;
             // might as well have used std::set, but to #include fewer things will
             // repurpose std::map that's already included for other things.
 
@@ -3211,10 +3211,10 @@ namespace impl
                                Iterable2 inps2;
             typename Iterable1::iterator it1;
             typename Iterable2::iterator it2;
-                                     int which; // 0: not-started; 
+                                     int which; // 0: not-started;
                                                 // 1: in range1
                                                 // 2: in range2
-            using value_type = 
+            using value_type =
                 typename std::common_type<
                     typename Iterable1::value_type,
                     typename Iterable2::value_type
@@ -3286,42 +3286,42 @@ namespace impl
     /////////////////////////////////////////////////////////////////////////
     template<typename BinaryFn>
     struct zip_adjacent
-    {    
+    {
         BinaryFn fn;
 
         template<typename Iterable>
         struct gen
-        {    
+        {
                               BinaryFn fn;
-                              Iterable src; 
+                              Iterable src;
            typename Iterable::iterator it;
                                   bool started;
 
             using value_type = decltype(fn(*it, *it));
 
             auto operator()() -> maybe<value_type>
-            {    
+            {
                 if(!started) {
                     it = src.begin();
                     started = true;
-                }    
+                }
 
                 auto prev_it = it == src.end() ? it : it++;
 
                 if(it != src.end()) {
                     return { fn(*prev_it, *it) };
                 } else {
-                    return { }; 
-                }    
-            }    
-        };   
+                    return { };
+                }
+            }
+        };
 
         template<typename Iterable>
         auto operator()(Iterable src) && -> seq<gen<Iterable>>
-        {    
+        {
             impl::require_iterator_category_at_least<std::forward_iterator_tag>(src);
-            return { { std::move(fn), std::move(src), {}, false } }; 
-        }    
+            return { { std::move(fn), std::move(src), {}, false } };
+        }
     };
 
     /////////////////////////////////////////////////////////////////////////
@@ -3343,7 +3343,7 @@ namespace impl
 
             // Checking against input-range semantics.
             // Checking against moving iterators (yielding rvalue-references)
-            // because if fn takes a param by value and the iterator yields 
+            // because if fn takes a param by value and the iterator yields
             // it will be moved-from.
             static_assert(!std::is_rvalue_reference<decltype(*--it1)>::value, "For cartesian-product expecting upstream iterable to be a bidirectional range yielding lvalue-references or values");
             static_assert(!std::is_rvalue_reference<decltype(*--it2)>::value, "For cartesian-product expecting parameter-iterable to be a bidirectional range yielding lvalue-references or values");
@@ -3389,10 +3389,10 @@ namespace impl
     {
         template<class Ret, class Arg>
         struct lambda_traits_detail
-        {    
-            using ret = Ret; 
+        {
+            using ret = Ret;
             using arg = Arg;
-        };   
+        };
 
         template<class L>
         struct lambda_traits
@@ -3414,8 +3414,8 @@ namespace impl
         using    Ret = typename traits::ret;
         using  Cache = std::map<Arg, Ret>;
 
-        // Even after std::remove_reference the type could be e.g. a 
-        // tuple containing references which may become dangling, 
+        // Even after std::remove_reference the type could be e.g. a
+        // tuple containing references which may become dangling,
         // so to guard against those we're requiring move-assignable.
         //
         // Same goes for the output-type, e.g. if return type is a reference-wrapper
@@ -3427,7 +3427,7 @@ namespace impl
 
                     F fn;
         mutable Cache m; // mutable, because operator() must be const
-                         // e.g. we may be memoizing some key_fn, and 
+                         // e.g. we may be memoizing some key_fn, and
                          // those are expected to be const
 
         const Ret& operator()(const Arg& arg) const
@@ -3476,17 +3476,17 @@ namespace impl
 #if 0
         return { std::move(seq) };
 #else
-        // seqs's gen(erator) may contain move-only state, 
+        // seqs's gen(erator) may contain move-only state,
         // not satisfying CopyConstructible, so we can't use it
         // for std::function payload for any_gen.
         // So we need to first wrap gen as a shared_ptr and create
         // a copyable gen-wrapper.
-        // (there's only going to be a single instance that 
+        // (there's only going to be a single instance that
         // is used to construct any_seq_t with, so the state
         // is not actually shared).
 
         auto gen_ptr = std::make_shared<Gen>( std::move(seq.get_gen()) );
-        return {{ 
+        return {{
             [gen_ptr]() -> impl::maybe<T>
             {
                 return (*gen_ptr)();
@@ -3539,7 +3539,7 @@ namespace impl
     /// inputs and outputs is not necessarily 1:1, and instead of taking a single element to transform
     /// we take a nullary generator callable `gen` and use it to fetch however many input elements
     /// we need to generate the next output element.
-    /// 
+    ///
     /// NB: If `bool(gen)==false`, the next invocation of gen() shall throw `fn::end_seq::exception` signaling end-of-inputs.
     /*!
     @code
@@ -3577,10 +3577,10 @@ namespace impl
 #if 1
             return [delim = std::move(delim)](auto inputs)
             {
-                return fn::seq([  delim, 
-                                 inputs = std::move(inputs), 
-                                     it = inputs.end(), 
-                                started = false, 
+                return fn::seq([  delim,
+                                 inputs = std::move(inputs),
+                                     it = inputs.end(),
+                                started = false,
                                    flag = false]() mutable
                 {
                     if(!started) {
@@ -3592,7 +3592,7 @@ namespace impl
                          :                      delim;
                 });
             };
-            
+
 #elif 0 // or
 
             return [delim = std::move(delim)](auto inputs)
@@ -3610,8 +3610,8 @@ namespace impl
 
             return fn::adapt([delim, flag = false](auto gen) mutable
             {
-                return           !gen ? fn::end_seq() 
-                     : (flag = !flag) ? gen() 
+                return           !gen ? fn::end_seq()
+                     : (flag = !flag) ? gen()
                      :                  delim;
             });
 #endif
@@ -3626,7 +3626,7 @@ namespace impl
             });
         };
 
-        auto res = 
+        auto res =
             fn::seq([i = 0]() mutable
             {
                 return i++;
@@ -3634,7 +3634,7 @@ namespace impl
 
           % my_where([](int x)
             {
-                return x >= 3; 
+                return x >= 3;
             })                  // 3,4,5,...
 
           % my_take_while([](int x)
@@ -3659,7 +3659,7 @@ namespace impl
     A more realistic example: suppose you have a pipeline
     transforming inputs to outputs in parallel, and you want to
     compress the output, but the outputs are small and compressing
-    them individually would be ineffective, and you want to 
+    them individually would be ineffective, and you want to
     serialize the incoming results into a buffer of some minimum
     size, e.g. 100kb, before passing it to the compressing stage.
     @code
@@ -3673,14 +3673,14 @@ namespace impl
         fn::seq([&]() -> std::string
         {
             std::string line;
-            return std::getline(std::cin, line) ? std::move(line) 
+            return std::getline(std::cin, line) ? std::move(line)
                                                 : fn::end_seq();
         })
 
       % fn::transform_in_parallel(make_result)
 
       % fn::adapt([](auto get_next)
-        { 
+        {
             std::ostringstream buf{};
 
             while(get_next && buf.tellp() < 100000) {
@@ -3696,7 +3696,7 @@ namespace impl
 
     @endcode
     */
-    template<typename F> 
+    template<typename F>
     impl::adapt<F> adapt(F fn)
     {
         return { std::move(fn) };
@@ -3705,25 +3705,25 @@ namespace impl
     ///////////////////////////////////////////////////////////////////////////
     /// @brief Create a `seq` yielding results of applying the transform functions to input-elements.
     ///
-    /// Returns a unary function-object, which will capture the arg by value and 
-    /// return an adapted `seq<...>` which will yield results of invoking 
+    /// Returns a unary function-object, which will capture the arg by value and
+    /// return an adapted `seq<...>` which will yield results of invoking
     /// `map_fn` on the elements (passed by value) of arg.
     /// See `fn::where` for an example.
-    template<typename F> 
+    template<typename F>
     impl::transform<F> transform(F map_fn)
     {
         // Rationale:
         // <br>
-        // 1) A possible implementation for a container-input could assume that 
+        // 1) A possible implementation for a container-input could assume that
         // `transform` function is inexpensive to recompute on-demand (this is
         // this approach in `range-v3` which may call `transform` multiple times
         // per element depending on the access pattern from the downstream views).
-        // 
+        //
         // 2) An implementation could require the result-type to be cacheable
         // and assume it is 'light' in terms of memory requirements and memoize the results.
         //
         // Our approach of applying `transform` lazily allows us to
-        // make neither assumption and apply `transform` at most once per element and without caching. 
+        // make neither assumption and apply `transform` at most once per element and without caching.
         // The user-code may always follow that by fn::to_vector() when necessary.
 
         return { std::move(map_fn) };
@@ -3763,9 +3763,9 @@ namespace impl
     @endcode
 
     NB: The body of the fold-loop is `init = binary_op(std::move(init), *it);`
-    If `it` is a `move`-ing iterator, like that of an `seq`, 
+    If `it` is a `move`-ing iterator, like that of an `seq`,
     you'd take `in` by value or rvalue-reference in your binary operator,
-    whereas if it's a regular iterator yielding lvalue-references, you'd 
+    whereas if it's a regular iterator yielding lvalue-references, you'd
     take it by const or non-const reference.
     */
     template<typename Result, typename Op>
@@ -3773,7 +3773,7 @@ namespace impl
     {
         // NB: idiomatically the init value goes after the binary op,
         // but most of the time binary-op is a multiline lambda, and having
-        // the init arg visually far-removed from the call-site 
+        // the init arg visually far-removed from the call-site
         // make things less readable, i.e. foldl([](...){ many lines }, init).
         // So placing the binary-op last.
         // (Tried it both ways, and found this order preferable).
@@ -3807,9 +3807,9 @@ namespace impl
     /*!
      * @see foldl
      * @see foldl_d
-     * 
+     *
     @code
-        const auto min_int = 
+        const auto min_int =
             std::vector<std::string>{{ "11", "-333", "22" }}
         % fn::transform([](const string& s) { return std::stoi(s); })
         % fn::foldl_1([](int out, int in)   { return std::min(out, in); });
@@ -3818,7 +3818,7 @@ namespace impl
     @endcode
      */
     template<typename Op>
-    impl::foldl_1<Op> foldl_1(Op binary_op) 
+    impl::foldl_1<Op> foldl_1(Op binary_op)
     {
         return { std::move(binary_op) };
     }
@@ -3829,11 +3829,11 @@ namespace impl
     /// If the input is a `seq`, last `win_size` elements are internally cached in a deque.
     /*!
     @code
-        const auto result = 
+        const auto result =
             make_inputs({ 1,2,3,4 })
           % fn::sliding_window(2)
           % fn::foldl(0L, [](long out, auto v)
-            { 
+            {
                 VERIFY(std::distance(v.begin(), v.end()) == 2);
                 auto it = v.begin();
                 return (out * 1000) + (*it * 10) + *std::next(it);
@@ -3849,7 +3849,7 @@ namespace impl
     /// Invoke fn on each element.
     ///
     /// NB: this is similar to a left-fold with binary-op `(nullptr_t, x) -> nullptr_t`
-    /// where `x` is consumed by-side-effect, and the binary-op is simplified to unary `(x)->void`. 
+    /// where `x` is consumed by-side-effect, and the binary-op is simplified to unary `(x)->void`.
     template<typename F>
     impl::for_each<F> for_each(F fn)
     {
@@ -3869,9 +3869,9 @@ namespace impl
     /// @}
     /// @defgroup filtering Filtering
     /// @{
- 
+
     /// @brief Yield elements until pred evaluates to false.
-    template<typename P> 
+    template<typename P>
     impl::take_while<P> take_while(P pred)
     {
         return { std::move(pred) };
@@ -3892,7 +3892,7 @@ namespace impl
     }
 
     /// @brief Drop elements until pred evaluates to false.
-    template<typename P> 
+    template<typename P>
     impl::drop_while<P> drop_while(P pred)
     {
         return { std::move(pred) };
@@ -3919,7 +3919,7 @@ namespace impl
     /*!
     @code
         // 1) If arg is a container passed by lvalue-reference,
-        // return a copy of the container with elements 
+        // return a copy of the container with elements
         // satisfying the predicate:
         auto nonempty_strs = strs % fn::where([](auto&& s) { return !s.empty(); });
 
@@ -3930,7 +3930,7 @@ namespace impl
         // remove the unsatisfying elements using iterate-erase idiom and return the container.
         strs = std::move(strs) % fn::where([](auto&& s) { return !s.empty(); });
 
-        // 3) If arg is a seq<G>, return adapted seq<...> that shall 
+        // 3) If arg is a seq<G>, return adapted seq<...> that shall
         // yield elements satisfying the predicate:
         auto res = fn::seq([i = 0]
         {
@@ -3942,14 +3942,14 @@ namespace impl
         VERIFY(res == 45);
     @endcode
      */
-    template<typename P> 
+    template<typename P>
     impl::where<P> where(P pred)
     {
         return { std::move(pred) };
     }
 
     /// @see `where_in_sorted`
-    template<typename SortedForwardRange, typename F> 
+    template<typename SortedForwardRange, typename F>
     impl::where<impl::in_sorted_by<SortedForwardRange, F> > where_in_sorted_by(const SortedForwardRange& r, F key_fn)
     {
         return { { r, false, { std::move(key_fn) } } };
@@ -3959,14 +3959,14 @@ namespace impl
     /// @brief Intersect with a sorted range.
     ///
     /// `elems %= fn::where_in_sorted(whitelist);`
-    template<typename SortedForwardRange> 
+    template<typename SortedForwardRange>
     impl::where<impl::in_sorted_by<SortedForwardRange, by::identity> > where_in_sorted(const SortedForwardRange& r)
     {
         return { { r, false, { { } } } };
     }
 
     /// @see `where_not_in_sorted`
-    template<typename SortedForwardRange, typename F> 
+    template<typename SortedForwardRange, typename F>
     impl::where<impl::in_sorted_by<SortedForwardRange, F> > where_not_in_sorted_by(const SortedForwardRange& r, F key_fn)
     {
         return { { r, true, { std::move(key_fn) } } };
@@ -3976,7 +3976,7 @@ namespace impl
     /// @brief Subtract a sorted range.
     ///
     /// `elems %= fn::where_not_in_sorted(blacklist);`
-    template<typename SortedForwardRange> 
+    template<typename SortedForwardRange>
     impl::where<impl::in_sorted_by<SortedForwardRange, by::identity> > where_not_in_sorted(const SortedForwardRange& r)
     {
         return { { r, true, { { } } } };
@@ -4007,7 +4007,7 @@ namespace impl
     <br>`[1,0,1,1,0,1,1,9]: k = 5`
     <br>`[1,3,1,1,3,1,1,9]: k = 2`
     */
-    template<typename F> 
+    template<typename F>
     impl::where_max_by<F> where_max_by(F key_fn)
     {
         return { std::move(key_fn), 1 };
@@ -4020,7 +4020,7 @@ namespace impl
 
     /// Filter elements to those having maximum value of fn.
     /// @see where_max_by
-    template<typename F> 
+    template<typename F>
     impl::where_max_by<F> where_min_by(F key_fn)
     {
         return { std::move(key_fn), -1 };
@@ -4050,21 +4050,21 @@ namespace impl
     /// @brief Similar to `group_adjacent_by`, but presorts the elements.
     ///
     /// @see group_adjacent_by
-    /*! 
+    /*!
     @code
         using alns_t = std::vector<CRef<CSeq_align>>;
-        
+
         std::move(alignments)
 
-          % fn::group_all_by([&](CConstRef<CSeq_align> aln) 
-            {    
+          % fn::group_all_by([&](CConstRef<CSeq_align> aln)
+            {
                 return GetLocusId( aln->GetSeq_id(0) );
-            })   
+            })
 
           % fn::for_each([&](alns_t alns)
-            {    
+            {
                 // Process alignments for a locus...
-            });  
+            });
 
        Note: template<typename Container> impl::group_all_by<F>::operator()(Container inputs)
        takes Container by-value and moves elements into the output.
@@ -4072,7 +4072,7 @@ namespace impl
 
     Buffering space requirements for `seq`: `O(N)`.
     */
-    template<typename F> 
+    template<typename F>
     impl::group_all_by<F> group_all_by(F key_fn)
     {
         return { std::move(key_fn) };
@@ -4089,7 +4089,7 @@ namespace impl
     /// @see group_all_by
     /// @see concat
     ///
-    /// If arg is a container, works similar to `group_all_by`, except 
+    /// If arg is a container, works similar to `group_all_by`, except
     /// returns a `std::vector<Container>` where each container
     /// contains adjacently-equal elements having same value of key.
     ///
@@ -4110,8 +4110,8 @@ namespace impl
     /// This is similar to regular `group_adjacent_by`, except the result type
     /// is a seq yielding subseqs of equivalent elements, rather than vectors.
     /// @code
-    ///     fn::seq(...) 
-    ///   % fn::group_adjacent_by(key_fn, fn::to_seq()) 
+    ///     fn::seq(...)
+    ///   % fn::group_adjacent_by(key_fn, fn::to_seq())
     ///   % fn::for_each([&](auto group_seq) // type of group_seq is a seq<...> instead of vector<...>
     ///     {
     ///         for(auto elem : group_seq) {
@@ -4165,7 +4165,7 @@ namespace impl
     /// @brief Group adjacent elements into chunks of specified size.
     /*!
     @code
-        std::move(elems) 
+        std::move(elems)
       % fn::in_groups_of(5)
       % fn::for_each(auto&& group)
         {
@@ -4197,12 +4197,12 @@ namespace impl
     }
 
     /// @brief stable-sort and return the input.
-    /*! 
+    /*!
     @code
-        auto res = 
+        auto res =
             std::list<std::string>{{ "333", "1", "22", "333", "22" }}
           % fn::to_vector()
-          % fn::sort_by([](const std::string& s) 
+          % fn::sort_by([](const std::string& s)
             {
                 return fn::by::decreasing(s.size());
             })
@@ -4284,7 +4284,7 @@ namespace impl
     /// @{
 
     /// @brief Keep first element from every adjacently-equal run of elements.
-    /// 
+    ///
     /// If arg is a container, apply erase-unique idiom and return
     /// the container.
     ///
@@ -4306,7 +4306,7 @@ namespace impl
     /// If arg is a container, move contents to vector, and then sort-by and unique-adjacent-by.
     ///
     /// If arg is a `seq<In>`, compose `seq<Out>` that will
-    /// keep values of key_fn in a set, and skip already-seen elements. 
+    /// keep values of key_fn in a set, and skip already-seen elements.
     ///
     /// NB: the lifetime of value returned by key_fn must be independent of arg.
     template<typename F>
@@ -4318,18 +4318,18 @@ namespace impl
     inline impl::unique_all_by<by::identity> unique_all()
     {
         return { by::identity{} };
-    }    
-    
+    }
+
 
     /// @}
     /// @defgroup concat Combining
     /// @{
 
-    /// @brief Flatten the result of `group_all_by` or `group_adjacent_by`. 
+    /// @brief Flatten the result of `group_all_by` or `group_adjacent_by`.
     ///
     /// Given a `ContainerA<ContainerB<...>>`, move all elements and return `ContainerB<...>`.
     ///
-    /// Given a seq-of-iterables `seq<In>`, compose `seq<Out>` that will lazily yield elements 
+    /// Given a seq-of-iterables `seq<In>`, compose `seq<Out>` that will lazily yield elements
     /// of each iterable in seq.
     inline impl::concat concat()
     {
@@ -4402,7 +4402,7 @@ namespace impl
      * Returns const or non-const reference depending on the constness of the container.
      * @see set_unique
     @code
-        const CConstRef<CUser_object>& model_evidence_uo = 
+        const CConstRef<CUser_object>& model_evidence_uo =
             fn::get_unique(seq_feat.GetExts(), [](CConstRef<CUser_object> uo)
             {
                 return uo->GetType().GetStr() == "ModelEvidence";
@@ -4415,7 +4415,7 @@ namespace impl
         auto best_it = container.end();
         size_t n = 0;
 
-        for(auto it   = container.begin(), 
+        for(auto it   = container.begin(),
                  it_end = container.end();
 
                  it != it_end; ++it)
@@ -4427,7 +4427,7 @@ namespace impl
         }
 
         if(n != 1) {
-            RANGELESS_FN_THROW("Expected unique element satisfying search criteria, found " 
+            RANGELESS_FN_THROW("Expected unique element satisfying search criteria, found "
                           + std::to_string(n) + ".");
         }
 
@@ -4441,15 +4441,15 @@ namespace impl
     @code
         CRef<CSeqdesc>& gb_desc =
             fn::set_unique(seq_entry.SetDescr().Set(), [](CConstRef<CSeqdesc> d)
-            {    
+            {
                 return d->IsGenbank();
-            },   
+            },
             [] // add if missing (must satisfy pred)
-            {    
+            {
                 auto g = Ref(new CSeqdesc);
                 g->SetGenbank();
                 return g;
-            });  
+            });
     @endcode
     */
     template<typename Container, typename P, typename Construct>
@@ -4458,7 +4458,7 @@ namespace impl
         auto best_it = container.end();
         size_t n = 0;
 
-        for(auto it   = container.begin(), 
+        for(auto it   = container.begin(),
                  it_end = container.end();
 
                  it != it_end; ++it)
@@ -4478,7 +4478,7 @@ namespace impl
         }
 
         if(n != 1) {
-            RANGELESS_FN_THROW("Expected unique element satisfying search criteria, found " 
+            RANGELESS_FN_THROW("Expected unique element satisfying search criteria, found "
                           + std::to_string(n) + ".");
         }
 
@@ -4524,7 +4524,7 @@ namespace impl
     @code
         size_t exec_count = 0;
         auto fn = make_memoized([&](int x){ exec_count++; return x*2; });
-        
+
         VERIFY(fn(1) == 2);
         VERIFY(fn(2) == 4);
         VERIFY(fn(1) == 2);
@@ -4582,7 +4582,7 @@ namespace operators
 {
     // Why operator % ?
     // Because many other libraries overload >> or | for various purposes,
-    // so in case of compilation errors involving those 
+    // so in case of compilation errors involving those
     // you get an honorable mention of every possible overload in TU.
     //
     // Also, in range-v3 it is used for composition of views
@@ -4591,18 +4591,18 @@ namespace operators
     /// @brief `return std::forward<F>(fn)(std::forward<Arg>(arg))`
     ///
     /// This is similar to Haskell's operator `(&) :: a -> (a -> b) -> b |infix 1|` or F#'s operator `|>`
-    
+
 #if 0 && (defined(__GNUC__) || defined(__clang__))
     __attribute__ ((warn_unused_result))
     // A user may forget to iterate over the sequence, e.g.
     //         std::move(inputs) % fn::transform(...); // creates and immediately destroys a lazy-seq.
     // whereas the user code probably intended:
     //         std::move(inputs) % fn::transform(...) % fn::for_each(...);
-    // 
+    //
     // To deal with this we could make operator% nodiscard / warn_unused_result,
-    // but disabling for now because I can't figure out how to suppress the 
+    // but disabling for now because I can't figure out how to suppress the
     // warning from the final % for_each(...).
-#endif 
+#endif
     template<typename Arg, typename F>
     auto operator % (Arg&& arg, F&& fn) -> decltype( std::forward<F>(fn)(std::forward<Arg>(arg)) )
     {
@@ -4620,7 +4620,7 @@ namespace operators
     auto operator %= (Arg& arg, F&& fn) -> decltype(void(std::forward<F>(fn)(std::move(arg))))
     {
         // NB: forwarding fn too because it may have rvalue-specific overloads.
-        // Note: result-type may be not the same as arg, so we 
+        // Note: result-type may be not the same as arg, so we
         // have to move the elements rather than simply assign.
         arg = fn::to(Arg{})(std::forward<F>(fn)(std::move(arg)));
     }
@@ -4640,7 +4640,7 @@ namespace operators
     @endcode
     */
     template<class Container1, class Container2>
-    auto operator<<=(Container1& cont1, 
+    auto operator<<=(Container1& cont1,
                     Container2&& cont2) -> decltype(void(cont1.insert(cont1.end(), std::move(*cont2.begin()))))
     {
         static_assert(std::is_rvalue_reference<Container2&&>::value, "");
@@ -4650,13 +4650,13 @@ namespace operators
     }
 
     // Could also take Container2 by value, but taking by rvalue-reference instead
-    // will preserve the internal storage of the container (instead of it being 
+    // will preserve the internal storage of the container (instead of it being
     // freed here when going out of scope if we took it by value). In some cases
-    // this may be desirable. So instead having separate overloads for 
+    // this may be desirable. So instead having separate overloads for
     // Container2&& and const Container2& that will copy elements.
 
     template<class Container1, class Container2>
-    auto operator<<=(Container1& cont1, 
+    auto operator<<=(Container1& cont1,
                const Container2& cont2) -> decltype(void(cont1.insert(cont1.end(), *cont2.begin())))
     {
         cont1.insert(cont1.end(),
@@ -4665,7 +4665,7 @@ namespace operators
     }
 
     // I would have expected that seq-based input would work with the above overload as well,
-    // but that is not so - after wrapping into std::make_move_iterator we're getting 
+    // but that is not so - after wrapping into std::make_move_iterator we're getting
     // compilation errors about missing operators +,+=,-,-= for the iterator.
     // Hence the special overload for seq (it already yields rvalue-references)
     template<class Container1, class Gen>
@@ -4685,7 +4685,7 @@ namespace operators
 } // namespace fn
 
 } // namespace rangeless
-        
+
 #if RANGELESS_ENABLE_TSV
 
 #include <string>
@@ -4702,17 +4702,17 @@ namespace tsv
 
     struct params
     {
-        std::string header = "";    
+        std::string header = "";
         // If specified, throw unless it is encountered verbatim in data before first data-row.
         // Used for checking that the file content corresponds to the program's expectations.
         // Skipped, even if skip_comments = false.
         //
         //  e.g. "#Col1 name\tCol2 name"  - Column names are in a comment before the data rows.
         //   or  "Col1 name\tCol2 name"   - Column names are in the first data-row.
-        //   or  "# File descriptor 42"   - some arbitrary comment. 
+        //   or  "# File descriptor 42"   - some arbitrary comment.
 
         std::string filename  = "";    // Report filename in exception messages.
-                                        
+
         bool skip_comments    = true;  // Skip lines starting with '#'.
         bool truncate_blanks  = true;  // Truncate leading and trailing spaces.
         bool skip_empty       = true;  // Skip lines that are empty (checked after truncate_blanks is applied).
@@ -4722,7 +4722,7 @@ namespace tsv
 
     class get_next_line
     {
-    public: 
+    public:
         get_next_line(std::istream& istr, params p = params{})
             :   m_istr{ istr }
             , m_params{ std::move(p) }
@@ -4741,8 +4741,8 @@ namespace tsv
                 return { m_line };
             }
 
-            if(    m_istr.bad() 
-               || (m_istr.fail() && !m_istr.eof()) 
+            if(    m_istr.bad()
+               || (m_istr.fail() && !m_istr.eof())
                || !m_line.empty())
             {
                 throw std::runtime_error("Stream " + m_params.filename + " terminated abnormally.");
@@ -4800,8 +4800,8 @@ namespace tsv
                 && !m_params.header.empty() && !m_found_header) // did not find expected header-line
             {
                 throw std::runtime_error(
-                        "Did not find expected header: '" 
-                       + m_params.header + "'" 
+                        "Did not find expected header: '"
+                       + m_params.header + "'"
                        + (m_params.filename.empty() ? "" : ( " in file: " + m_params.filename)));
             }
 
@@ -4825,7 +4825,7 @@ namespace tsv
           , m_row{}
         {}
 
-        // If we're an rvalue, support usage like `const auto row = tsv::split_on_delim{ ',' }("a,bb,ccc");` 
+        // If we're an rvalue, support usage like `const auto row = tsv::split_on_delim{ ',' }("a,bb,ccc");`
         // or, if we want to reuse existing row's storage: `row = tsv::spit_on_delim{ ',' }("a,bb,ccc", std::move(row));`
         auto operator()(const std::string& line, row_t ret = {}) const && -> tsv::row_t
         {
@@ -4888,13 +4888,13 @@ namespace tsv
     VERIFY(result == "foo|;bar|baz|;");
     @endcode
     */
-    inline auto from(std::istream& istr, char delim = '\t', params params = {}) 
+    inline auto from(std::istream& istr, char delim = '\t', params params = {})
         -> fn::impl::seq<
                 fn::impl::transform< tsv::split_on_delim >::gen<
                     fn::impl::catch_end< tsv::get_next_line > > >
     {
         const auto truncate_blanks = params.truncate_blanks; // params will be moved from.
-        return fn::transform( split_on_delim{ delim, truncate_blanks } )( 
+        return fn::transform( split_on_delim{ delim, truncate_blanks } )(
                      fn::seq(  get_next_line{ istr,  std::move(params) }) );
     }
 
@@ -4917,13 +4917,13 @@ namespace tsv
         to_num(const to_num&) = delete; // prevent nonsense like auto x = tsv::num("123") from compiling
         to_num& operator=(const to_num&) = delete;
 
-        explicit to_num(const char* str) 
+        explicit to_num(const char* str)
           : m_beg{ str }
-          , m_end{ m_beg + std::strlen(str) } 
+          , m_end{ m_beg + std::strlen(str) }
         {}
 
         template<typename Str> // string, string_view, CTempString etc.
-        explicit to_num(const Str& str) 
+        explicit to_num(const Str& str)
           : m_beg{ str.begin() == str.end() ? nullptr : &*str.begin() }
           , m_end{ str.begin() == str.end() ? nullptr : &*str.begin() + str.size() }
         {}
@@ -4943,11 +4943,11 @@ namespace tsv
         {
             auto ret = Number{};
             char* endptr = nullptr;
-            
+
             errno = 0;
             x_parse(ret, &endptr);
 
-            throw_if(errno,                      ret, "under-or-overflow"); 
+            throw_if(errno,                      ret, "under-or-overflow");
             throw_if(!endptr || endptr == m_beg, ret, "could not interpret");
             throw_if(endptr > m_end,             ret, "parsed past the end");
 
@@ -4974,9 +4974,9 @@ namespace tsv
         {
             if(cond) {
                 throw std::domain_error(
-                    "Can't parse '" 
+                    "Can't parse '"
                   + std::string(m_beg, size_t(m_end-m_beg))
-                  + "' as numeric type '" + typeid(T).name() 
+                  + "' as numeric type '" + typeid(T).name()
                   + "' - " + message + ".");
             }
         }
@@ -4990,15 +4990,15 @@ namespace tsv
         {
             d = std::strtod(m_beg, endptr);
         }
-        
+
         void x_parse(float& d, char** endptr) const
         {
             d = std::strtof(m_beg, endptr);
         }
 
-        // NB: originally had two functions below as one function and 
+        // NB: originally had two functions below as one function and
         // chose dynamically how to parse based on std::is_signed<Integral>::value,
-        // but had to switch to static-dispatch to avoid the signed-vs-unsigned 
+        // but had to switch to static-dispatch to avoid the signed-vs-unsigned
         // comparison warnings
 
         template<typename Integral, typename std::enable_if<std::is_signed<Integral>::value>::type* = nullptr >
@@ -5058,7 +5058,7 @@ namespace impl
 {
 
 // move-only non-default-constructible type wrapping an int.
-// Will use it as our value_type in tests to verify that 
+// Will use it as our value_type in tests to verify that
 // we're supporting this.
 struct X
 {
@@ -5119,13 +5119,13 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
     {
 
     };
-#else 
+#else
 
 
 #if __cplusplus >= 201402L // gcc 4.9.3 complains about auto&& as lambda param with -std=c++11
     tests["Test for NB[4]"] = [&]
     {
-        auto xs = make_inputs({1,2,3}) 
+        auto xs = make_inputs({1,2,3})
                 % fn::where_max_by([](auto&& xx)
                   {
                      return std::tie(xx);
@@ -5171,14 +5171,14 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
 #if __cplusplus >= 201402L
     // using auto-parameter for `v` in lambda, can be
-    // either container's iterator, or deque<...>::iterator 
+    // either container's iterator, or deque<...>::iterator
     // depending on inputs type
 
-        const auto result = 
+        const auto result =
             make_inputs({ 1,2,3,4 })
           % fn::sliding_window(2)
           % fn::foldl(0L, [](long out, auto v)
-            { 
+            {
                 VERIFY(std::distance(v.begin(), v.end()) == 2);
                 auto it = v.begin();
                 return (out * 1000) + (*it * 10) + *std::next(it);
@@ -5191,12 +5191,12 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["where"] = [&]
     {
-        auto ret = make_inputs({1,2,3}) 
-            % fn::where([](int x) { return x != 2; }) 
+        auto ret = make_inputs({1,2,3})
+            % fn::where([](int x) { return x != 2; })
             % fold;
         VERIFY(ret == 13);
 
-        //123 % fn::where([](int x) { return x == 2; }); 
+        //123 % fn::where([](int x) { return x == 2; });
     };
 
 
@@ -5218,7 +5218,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["where_max_by"] = [&]
     {
-        auto ret = make_inputs({1,3,1,3}) 
+        auto ret = make_inputs({1,3,1,3})
             % fn::where_max_by(fn::by::identity{})
             % fold;
         VERIFY(ret == 33);
@@ -5228,7 +5228,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
     {
         // NB: also testing compilation where key_fn returns a tuple
         // containing references (see NB[2])
-        auto ret = make_inputs({5,3,5,3}) 
+        auto ret = make_inputs({5,3,5,3})
             % fn::where_min_by([](const int& x) { return std::tie(x); })
             % fold;
         VERIFY(ret == 33);
@@ -5236,7 +5236,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["take_while"] = [&]
     {
-        auto ret = make_inputs({3,4,1,2}) 
+        auto ret = make_inputs({3,4,1,2})
             % fn::take_while([](int x) { return x > 1; })
             % fold;
         VERIFY(ret == 34);
@@ -5244,7 +5244,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["drop_while"] = [&]
     {
-        auto ret = make_inputs({3,4,1,2}) 
+        auto ret = make_inputs({3,4,1,2})
             % fn::drop_while([](int x) { return x > 1; })
             % fold;
         VERIFY(ret == 12);
@@ -5253,18 +5253,18 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["take_last"] = [&]
     {
-        auto ret = 
-              make_inputs({1,2,3}) 
+        auto ret =
+              make_inputs({1,2,3})
             % fn::take_last(2)
             % fold;
         VERIFY(ret == 23);
 
-        ret = make_inputs({1,2,3}) 
+        ret = make_inputs({1,2,3})
             % fn::take_last(3)
             % fold;
         VERIFY(ret == 123);
 
-        ret = make_inputs({1,2,3}) 
+        ret = make_inputs({1,2,3})
             % fn::take_last(4)
             % fold;
         VERIFY(ret == 123);
@@ -5276,20 +5276,20 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["drop_last"] = [&]
     {
-        auto ret = 
-              make_inputs({1,2,3}) 
+        auto ret =
+              make_inputs({1,2,3})
             % fn::drop_last(2)
             % fold;
 
         VERIFY(ret == 1);
 
-        ret = make_inputs({1,2,3}) 
+        ret = make_inputs({1,2,3})
             % fn::drop_last(3)
             % fold;
 
         VERIFY(ret == 0);
 
-        ret = make_inputs({1,2,3}) 
+        ret = make_inputs({1,2,3})
             % fn::drop_last(4)
             % fold;
 
@@ -5302,8 +5302,8 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["take_first"] = [&]
     {
-        auto ret = 
-              make_inputs({1,2,3}) 
+        auto ret =
+              make_inputs({1,2,3})
             % fn::take_first(2)
             % fold;
         VERIFY(ret == 12);
@@ -5311,8 +5311,8 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 
     tests["drop_first"] = [&]
     {
-        auto ret = 
-              make_inputs({1,2,3}) 
+        auto ret =
+              make_inputs({1,2,3})
             % fn::drop_first(2)
             % fold;
         VERIFY(ret == 3);
@@ -5361,7 +5361,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
     };
 
     /////////////////////////////////////////////////////////////////////////
-    
+
     tests["values"] = [&]
     {
         auto inps = make_inputs({1,2,3});
@@ -5370,9 +5370,9 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
         m.emplace(1, std::move(inps));
         m.emplace(2, make_inputs({4,5,6}));
 
-        auto res = std::move(m) 
+        auto res = std::move(m)
                  % fn::transform(fn::get::second{})
-                 % fn::concat() 
+                 % fn::concat()
                  % fold;
 
         VERIFY(res == 123456);
@@ -5456,7 +5456,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 #if 0
         % fn::unique_all()
         // Normally this would work, but we've made our type X not default-constructible,
-        // so when using identity key-fn, the type X returned by it cannot be 
+        // so when using identity key-fn, the type X returned by it cannot be
         // used as key-type to store seen elements. Instead, will use modified key-fn below.
 #elif 1
         % fn::unique_all_by([](const X& x) -> const int& { return x; })
@@ -5590,7 +5590,7 @@ static void run_tests()
 
 #else // all tests
 
-    std::map<std::string, std::function<void()>> 
+    std::map<std::string, std::function<void()>>
         test_cont{}, test_seq{}, test_view{}, test_other{};
 
     // make battery of tests where input is a container (Xs)
@@ -5662,7 +5662,7 @@ static void run_tests()
         for(const auto& x : myseq) {
             res = res*10 + x;
         }
-       
+
         VERIFY(res == 2468);
     };
 
@@ -5706,7 +5706,7 @@ static void run_tests()
 
     test_other["fold"] = [&]
     {
-        const std::string x = 
+        const std::string x =
         vec_t{{1,2,3}} % fn::foldl(std::string{"^"},
                                 [](std::string s, int x_)
         {
@@ -5728,7 +5728,7 @@ static void run_tests()
 
     test_other["foldl_1"] = [&]
     {
-        const auto min_int = 
+        const auto min_int =
             std::vector<std::string>{{ "11", "-333", "22" }}
         % fn::transform([](const std::string& s) { return std::stoi(s); })
         % fn::foldl_1([](int out, int in) { return std::min(out, in); });
@@ -5744,7 +5744,7 @@ static void run_tests()
     {
         // verify what filtering works for containers where
         // std::remove_if is not supported (e.g. assotiative)
-        
+
         auto ints2 = std::set<int>{{111, 333}};
 
         using fn::operators::operator%=;
@@ -5825,7 +5825,7 @@ static void run_tests()
         using fn::operators::operator%=;
         strs %= fn::sort_by(fn::make_memoized([&](const std::string& s)
         {
-            exec_count++; 
+            exec_count++;
             return s.size();
         }));
 
@@ -5914,19 +5914,19 @@ static void run_tests()
         auto& y = set_unique(ints2, [](int x_) { return x_ == 42; },
                                     []{ return 42; });
 
-        VERIFY( ints2.size() == 4 
-            &&  ints2.back() == 42 
+        VERIFY( ints2.size() == 4
+            &&  ints2.back() == 42
             && &ints2.back() == &y);
     };
 
     test_other["group_adjacent_by vector-storage-recycling"] = []
     {
         // Check that vec_t& passed by reference
-        // is reused on subsequent iterations instead 
+        // is reused on subsequent iterations instead
         // of reallocated de-novo.
         std::set<int*> ptrs;
 
-        auto result = 
+        auto result =
             vec_t{2,4,1,3,5,6,7,9}
           % fn::to_seq()
           % fn::group_adjacent_by([](int x) { return x % 2; })
@@ -5983,7 +5983,7 @@ static void run_tests()
         // rather than by value.
 
         std::vector<std::pair<std::unique_ptr<int>, int>> v{};
-        
+
         fn::sort_by(fn::by::first{})(std::move(v));
         fn::sort_by(fn::by::second{})(std::move(v));
 
@@ -5996,7 +5996,7 @@ static void run_tests()
     };
 
     test_other["exists_where"] = [&]
-    { 
+    {
          VERIFY(  ( vec_t{{ 1, 2, 3}} %  fn::exists_where([](int x){ return x == 2; }) ));
          VERIFY( !( vec_t{{ 1, 2, 3}} %  fn::exists_where([](int x){ return x == 5; }) ));
          VERIFY(  ( vec_t{{ 1, 2, 3}} % !fn::exists_where([](int x){ return x == 5; }) ));
@@ -6040,10 +6040,10 @@ static void run_tests()
 #if 1
             return [delim = std::move(delim)](auto inputs)
             {
-                return fn::seq([  delim, 
-                                 inputs = std::move(inputs), 
-                                     it = inputs.end(), 
-                                started = false, 
+                return fn::seq([  delim,
+                                 inputs = std::move(inputs),
+                                     it = inputs.end(),
+                                started = false,
                                    flag = false]() mutable
                 {
                     if(!started) {
@@ -6055,7 +6055,7 @@ static void run_tests()
                          :                      delim;
                 });
             };
-            
+
 #elif 0 // or
 
             return [delim = std::move(delim)](auto inputs)
@@ -6073,8 +6073,8 @@ static void run_tests()
 
             return fn::adapt([delim, flag = false](auto gen) mutable
             {
-                return           !gen ? fn::end_seq() 
-                     : (flag = !flag) ? gen() 
+                return           !gen ? fn::end_seq()
+                     : (flag = !flag) ? gen()
                      :                  delim;
             });
 #endif
@@ -6088,7 +6088,7 @@ static void run_tests()
             });
         };
 
-        auto res = 
+        auto res =
             fn::seq([i = 0]() mutable
             {
                 return i++;
@@ -6096,7 +6096,7 @@ static void run_tests()
 
           % my_where([](int x)
             {
-                return x >= 3; 
+                return x >= 3;
             })                  // 3,4,5,...
 
           % my_take_while([](int x)
@@ -6122,7 +6122,7 @@ static void run_tests()
 
     test_other["cartesian_product_with"] = [&]
     {
-        auto res = 
+        auto res =
             vec_t{{1,2}}
           % fn::cartesian_product_with( vec_t{{3,4,5}}, [](int x, int y)
             {
@@ -6147,7 +6147,7 @@ static void run_tests()
         };
 
         auto xs =
-            gen_ints(0, 6) 
+            gen_ints(0, 6)
           % fn::transform([&](int x) { return gen_ints(x, x+2); })
           % fn::concat()
           % fn::where([](int x) { return x % 2 == 0; });
@@ -6156,7 +6156,7 @@ static void run_tests()
         int64_t res = 0;
         bool threw = true;
         try {
-            // xs is a seq, so trying to iterate it 
+            // xs is a seq, so trying to iterate it
             // a second time shall throw.
             for(size_t i = 0; i < 2; i++) {
                 for(auto x : xs) {
@@ -6253,15 +6253,15 @@ static void run_tests()
 
     test_other["counts"] = [&]
     {
-        auto res = 
-            vec_t{{ 1, 1,2, 1,2,3 }} 
+        auto res =
+            vec_t{{ 1, 1,2, 1,2,3 }}
           % fn::counts()
           % fn::transform([](const std::map<int, size_t>::value_type& kv)
             {
                 return kv.first * 10 + int(kv.second);
             })
           % fn::to_vector();
-        
+
         VERIFY((res == vec_t{{13, 22, 31}}));
     };
 
@@ -6390,10 +6390,10 @@ static void run_tests()
 /////////////////////////////////////////////////////////////////////////////
 
 namespace rangeless
-{ 
-   
+{
+
 namespace mt
-{ 
+{
 
 /////////////////////////////////////////////////////////////////////////////
 /// \brief A simple timer.
@@ -6465,7 +6465,7 @@ public:
  *   - Can be used with lockables other than `std::mutex`, e.g. `mt::atomic_lock`.
  *   - Contention-resistant: when used with `mt::atomic_lock` the throughput is comparable to state-of-the-art lock-free implementations.
  *   - Short and simple implementation using only c++11 standard library primitives.
- *   - Provides RAII-based closing semantics to communicate end-of-inputs 
+ *   - Provides RAII-based closing semantics to communicate end-of-inputs
  *     from the pushing end or failure/going-out-of-scope from the popping end.
  *
  * Related:
@@ -6478,9 +6478,9 @@ public:
 @code
     // A toy example to compute sum of lengths of strings in parallel.
     //
-    // Spin-off a separate async-task that enqueues jobs 
-    // to process a single input, and enqueues the 
-    // futures into a synchronized queue, while accumulating 
+    // Spin-off a separate async-task that enqueues jobs
+    // to process a single input, and enqueues the
+    // futures into a synchronized queue, while accumulating
     // the ready results from the queue in this thread.
 
     using queue_t = mt::synchronized_queue<std::future<size_t> >;
@@ -6491,11 +6491,11 @@ public:
         auto close_on_exit = queue.close();
 
         for(std::string line; std::getline(std::cin, line); ) {
-            queue <<= 
+            queue <<=
                 std::async(
-                    std::launch::async, 
-                    [](const std::string& s) { 
-                        return s.size(); 
+                    std::launch::async,
+                    [](const std::string& s) {
+                        return s.size();
                     },
                     std::move(line));
         }
@@ -6512,34 +6512,34 @@ class synchronized_queue : public synchronized_queue_base
 public:
     using value_type = T;
 
-    ///@{ 
+    ///@{
 
     synchronized_queue(size_t cap = 1024)
       : m_capacity{ cap }
     {}
 
     ~synchronized_queue() = default;
-    // What if there are elements in the queue? 
-    // If there are active poppers, we ought to 
+    // What if there are elements in the queue?
+    // If there are active poppers, we ought to
     // let them finish, but if there aren't any,
-    // this will block indefinitely, so we'll 
+    // this will block indefinitely, so we'll
     // leave it to the user code to manage the
     // lifetime across multiple threads.
     //
     // Should we call x_close() ?
     // No point - we're already destructing.
-    // (it also grabs the m_queue_mutex, which 
+    // (it also grabs the m_queue_mutex, which
     // theoretically may throw).
 
 
-    // After careful consideration, decided not to provide 
+    // After careful consideration, decided not to provide
     // move-semantics; copy and move constructors are implicitly
     // deleted.
     //
     // A synchronized_queue can be thought of buffered mutex
-    // (i.e. a synchronization primitive rather than just a 
+    // (i.e. a synchronization primitive rather than just a
     // data structure), and mutexes are not movable.
-    
+
     ///@}
     ///@{
 
@@ -6580,13 +6580,13 @@ public:
         /// Blocking push. May throw `queue_closed`
         void operator()(value_type val) noexcept(false)
         {
-            // NB: if this throws, val is gone. If the user needs 
+            // NB: if this throws, val is gone. If the user needs
             // to preserve it in case of failure (strong exception
-            // guarantee), it should be using try_push which takes 
+            // guarantee), it should be using try_push which takes
             // value by rvalue-reference and moves it only in case of success.
             //
             // We could do the same here, but that would mean
-            // that the user must always pass as rvalue, and 
+            // that the user must always pass as rvalue, and
             // to pass by copy it would have to do so explicitly, e.g.
             //
             // void operator()(value_type&& val);
@@ -6594,12 +6594,12 @@ public:
             // queue.push(my_const_ref); // won't compile.
             // queue.push(queueue_t::value_type( my_const_ref )); // explicit copy
             //
-            // I think this would actually be a good thing, as it 
+            // I think this would actually be a good thing, as it
             // makes the copying visible, but all other synchronied-queue
-            // APIs allow pushing by const-or-forwarding-references, 
+            // APIs allow pushing by const-or-forwarding-references,
             // so we have allow the same for the sake of consistency.
 
-            const status st = 
+            const status st =
                 m_queue.try_push(std::move(val), no_timeout_sentinel_t{});
 
             assert(st != status::timeout);
@@ -6676,12 +6676,12 @@ public:
                 }
             }
         }
-        
+
         assert(closed() && m_queue.empty());
     }
 
     ///@}
-    ///@{ 
+    ///@{
 
 
     /////////////////////////////////////////////////////////////////////////
@@ -6690,7 +6690,7 @@ public:
     status try_push(value_type&& value, Duration timeout = {})
     {
         // NB: we could have taken value as value_type&, but
-        // the user-code may forget or not expect that the value 
+        // the user-code may forget or not expect that the value
         // will be moved-from and may try to use it.
         //
         // With rvalue-reference the caller-code has to, e.g.
@@ -6702,13 +6702,13 @@ public:
 
         lock_t queue_lock{ m_queue_mutex };
 
-        ++m_num_waiting_to_push;        
+        ++m_num_waiting_to_push;
         const bool ok = x_wait_until([this]
             {
                 return m_queue.size() < m_capacity || !m_capacity;
-            }, 
+            },
             m_can_push, queue_lock, timeout);
-        --m_num_waiting_to_push;        
+        --m_num_waiting_to_push;
 
         if(!ok) {
             return status::timeout;
@@ -6718,7 +6718,7 @@ public:
              return status::closed;
         }
 
-        assert(m_queue.size() < m_capacity); 
+        assert(m_queue.size() < m_capacity);
 
         // if push throws, is the value moved-from?
         // No. std::move is just an rvalue_cast - no-op
@@ -6779,7 +6779,7 @@ public:
     }
 
     ///@}
-    ///@{ 
+    ///@{
 
     /////////////////////////////////////////////////////////////////////////
     size_t approx_size() const noexcept
@@ -6824,7 +6824,7 @@ public:
     };
 
     /// \brief Return an RAII object that will close the queue in its destructor.
-    /// 
+    ///
     /// @code
     /// auto guard = queue.close(); // close the queue when leaving scope
     /// queue.close(); // close the queue now (guard's is destroyed immediately)
@@ -6858,16 +6858,16 @@ private:
 
     template<typename F>
     bool x_wait_until(F condition, condvar_t& cv, lock_t& lock, no_timeout_sentinel_t)
-    {    
+    {
         cv.wait(lock, std::move(condition));
         return true;
-    }    
+    }
 
     template<typename Duration, typename F>
     bool x_wait_until(F condition, condvar_t& cv, lock_t& lock, Duration duration)
-    {    
+    {
         return cv.wait_for(lock, duration, std::move(condition));
-    } 
+    }
 
     value_type x_blocking_pop()
     {
@@ -6907,7 +6907,7 @@ private:
     void x_close()
     {
         {
-            guard_t g{ m_queue_mutex }; 
+            guard_t g{ m_queue_mutex };
             m_capacity = 0;
         }
         m_can_pop.notify_all();
@@ -6915,7 +6915,7 @@ private:
     }
 
     // NB: open() is not provided, such that if closed() returns true,
-    // we know for sure that it's staying that way. 
+    // we know for sure that it's staying that way.
 
     /////////////////////////////////////////////////////////////////////////
 
@@ -7010,7 +7010,7 @@ namespace impl
     struct par_transform
     {
          Async async;
-             F map_fn;    
+             F map_fn;
         size_t queue_cap; // 0 means in-this-thread.
 
         par_transform&& queue_capacity(size_t cap) &&
@@ -7019,14 +7019,14 @@ namespace impl
             return std::move(*this);
         }
 
-#if __cplusplus >= 201402L 
+#if __cplusplus >= 201402L
 
         /// If a job granularity is too small, combine work in batches per-async-task.
         auto in_batches_of(size_t batch_size) && // rvalue-specific because will move-from
         {
             assert(batch_size >= 2);
 
-            return [ map_fn = std::move(this->map_fn), 
+            return [ map_fn = std::move(this->map_fn),
                       async = std::move(this->async),
                   queue_cap = std::move(this->queue_cap),
                  batch_size
@@ -7044,9 +7044,9 @@ namespace impl
                 };
 
                 // par_batch_transform = fn::transform_in_parallel(...), but it has not been declared yet.
-                auto par_batch_transform = 
+                auto par_batch_transform =
                     impl::par_transform<decltype(batch_transform), Async>{ async, // by-move here?
-                                                                           std::move(batch_transform), 
+                                                                           std::move(batch_transform),
                                                                            queue_cap };
 
                 return fn::concat()(                      // flatten batches of outputs.
@@ -7067,7 +7067,7 @@ namespace impl
              const size_t queue_cap;
 
             using value_type = decltype(map_fn(std::move(*gen())));
-            
+
 #if 0
             using queue_t = std::deque<std::future<value_type>>;
 #else
@@ -7085,7 +7085,7 @@ namespace impl
             using future_like_t = decltype(async(value_type_callable{}));
             using queue_t  = std::deque<future_like_t>;
 #endif
-          
+
             queue_t queue;
 
             /////////////////////////////////////////////////////////////////
@@ -7108,18 +7108,18 @@ namespace impl
                     using input_t = typename InGen::value_type;
 
                     const F& fn;
-                     input_t inp; 
+                     input_t inp;
 
                     auto operator()() -> decltype(fn(std::move(inp)))
-                    {    
+                    {
                         return fn(std::move(inp));
-                    }    
+                    }
                 };
 
                 // if have more inputs, top-off the queue with async-tasks.
                 while(queue.size() < queue_cap) {
                     auto x = gen();
-                    
+
                     if(!x) {
                         break;
                     }
@@ -7176,14 +7176,14 @@ namespace impl
     /// it brings in "heavy" STL `#include`s (`<future>` and `<thread>`).
     ///
     /// `queue_capacity` is the maximum number of simultaneosly-running `std::async`-tasks, each executing a single invocation of `map_fn`.
-    /// 
-    /// NB: if the execution time of `map_fn` is highly variable, having higher capacity may help, such that
-    /// tasks continue to execute while we're blocked waiting on a result from a long-running task. 
     ///
-    /// NB: If the tasks are too small compared to overhead of running as async-task, 
+    /// NB: if the execution time of `map_fn` is highly variable, having higher capacity may help, such that
+    /// tasks continue to execute while we're blocked waiting on a result from a long-running task.
+    ///
+    /// NB: If the tasks are too small compared to overhead of running as async-task,
     /// it may be helpful to batch them (see `fn::in_groups_of`), have `map_fn` produce
     /// a vector of outputs from a vector of inputs, and `fn::concat` the outputs.
-    /// 
+    ///
     /// `map_fn` is required to be thread-safe.
     ///
     /// NB: the body of the `map_fn` would normally compute the result in-place,
@@ -7192,7 +7192,7 @@ namespace impl
     ///
     /// ---
     /// Q: Why do we need this? We have parallel `std::transform` and `std::transform_reduce` in c++17?
-    /// 
+    ///
     /// A: Parallel `std::transform` requires a multi-pass `ForwardRange`
     /// rather than `InputRange`, and `std::terminate`s if any of the tasks throws.
     /// `std::transform_reduce` requires `ForwardRange` and type-symmetric, associative, and commutative `BinaryOp`
@@ -7226,7 +7226,7 @@ namespace impl
             buf.resize(size_t(istr.gcount()));
             return !buf.empty() ? std::move(buf) : fn::end_seq();
         })
-      
+
       % fn::transform_in_parallel([](bytes_t buf) -> bytes_t
         {
             // compress the block.
@@ -7251,24 +7251,24 @@ namespace impl
     See an similar examples using [RaftLib](https://medium.com/cat-dev-urandom/simplifying-parallel-applications-for-c-an-example-parallel-bzip2-using-raftlib-with-performance-f69cc8f7f962)
     or [TBB](https://software.intel.com/en-us/node/506068)
     */
-    template<typename F> 
+    template<typename F>
     impl::par_transform<F, impl::std_async> transform_in_parallel(F map_fn)
     {
         return { impl::std_async{}, std::move(map_fn), std::thread::hardware_concurrency() };
     }
 
-    
+
     /// @brief A version of `transform_in_parallel` that uses a user-provided Async (e.g. backed by a fancy work-stealing thread-pool implementation).
     ///
     /// `Async` is a unary invokable having the following signature:
     /// `template<typename NullaryInvokable> operator()(NullaryInvokable job) const -> std::future<decltype(job())>`
     ///
-    /// NB: `Async` must be copy-constructible (may be passed via `std::ref` as appropriate). 
+    /// NB: `Async` must be copy-constructible (may be passed via `std::ref` as appropriate).
     ///
     /// A single-thread pool can be used to offload the transform-stage to a separate thread if `transform` is not parallelizeable.
     /*!
     @code
-        auto res2 = 
+        auto res2 =
             std::vector{{1,2,3,4,5}} // can be an InputRange
 
           % fn::transform_in_parallel([](auto x)
@@ -7287,7 +7287,7 @@ namespace impl
         VERIFY(res2 == ",1,2,3,4,5");
     @endcode
     */
-    template<typename F, typename Async> 
+    template<typename F, typename Async>
     impl::par_transform<F, Async> transform_in_parallel(F map_fn, Async async)
     {
         return { std::move(async), std::move(map_fn), std::thread::hardware_concurrency() };
@@ -7322,7 +7322,7 @@ namespace impl
 static void run_tests()
 {
     // test that queue works with non-default-constructible types
-    {{ 
+    {{
         int x = 10;
         mt::synchronized_queue<std::reference_wrapper<int> > queue;
         queue.push( std::ref(x));
@@ -7364,7 +7364,7 @@ static void run_tests()
                 q.close();
             });
             long x = 0;
-            
+
             auto res = q.try_pop(x, std::chrono::milliseconds(90));
             VERIFY(res == queue_t::status::timeout);
 
@@ -7401,7 +7401,7 @@ static void run_tests()
 
             //*q1.inserter()++ = 123;
             q1.push(123);
-            
+
             //auto q2 = std::move(q1);
             //assert(q1.empty());
             auto& q2 = q1;
@@ -7415,7 +7415,7 @@ static void run_tests()
         mt::timer timer;
 
         std::vector<std::future<void>> pushers;
-        std::vector<std::future<long>> poppers; 
+        std::vector<std::future<long>> poppers;
 
         const size_t num_cpus = std::thread::hardware_concurrency();
         std::cerr << "hardware concurrency: " << num_cpus << "\n";
@@ -7425,7 +7425,7 @@ static void run_tests()
         // using 16 push-jobs and 16 pop-jobs:
         // In each pop-job accumulate partial sum.
         for(size_t i = 0; i < num_jobs; i++) {
-            
+
             // Using blocking push/pop
             /////////////////////////////////////////////////////////////////
 
@@ -7447,14 +7447,14 @@ static void run_tests()
                 }));
         }
 
-        // wait for all push-jobs to finish, and 
+        // wait for all push-jobs to finish, and
         // close the queue, unblocking the poppers.
         for(auto& fut : pushers) {
             fut.wait();
         }
 
         queue.close(); // non-blocking; queue may still be non-empty
-        
+
         //std::cerr << "Size after close:" << queue.approx_size() << "\n";
 
         // pushing should now be prohibited,
