@@ -40,7 +40,9 @@
 #include <memory> // make_shared
 
 #if defined(DOXYGEN) || (defined(RANGELESS_FN_ENABLE_RUN_TESTS) && RANGELESS_FN_ENABLE_RUN_TESTS)
+#    ifndef RANGELESS_FN_ENABLE_PARALLEL
 #    define RANGELESS_FN_ENABLE_PARALLEL 1
+#    endif
 #    define RANGELESS_FN_ENABLE_TSV 1
 #endif
 
