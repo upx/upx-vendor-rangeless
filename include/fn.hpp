@@ -41,7 +41,7 @@
 
 #if defined(DOXYGEN) || (defined(RANGELESS_FN_ENABLE_RUN_TESTS) && RANGELESS_FN_ENABLE_RUN_TESTS)
 #    define RANGELESS_FN_ENABLE_PARALLEL 1
-#    define RANGELESS_ENABLE_TSV 1
+#    define RANGELESS_FN_ENABLE_TSV 1
 #endif
 
 #if defined(_MSC_VER)
@@ -4686,7 +4686,7 @@ namespace operators
 
 } // namespace rangeless
 
-#if RANGELESS_ENABLE_TSV
+#if RANGELESS_FN_ENABLE_TSV
 
 #include <string>
 #include <iostream>
@@ -5031,7 +5031,7 @@ namespace tsv
 
 } // namespace rangeless
 
-#endif // ENABLE_TSV
+#endif // RANGELESS_FN_ENABLE_TSV
 
 
 
@@ -7565,7 +7565,7 @@ static void run_tests()
 
 #endif // RANGELESS_FN_ENABLE_RUN_TESTS
 
-#endif // RANGELESS_FN_ENABLE_PAR
+#endif // RANGELESS_FN_ENABLE_PARALLEL
 
 
 
