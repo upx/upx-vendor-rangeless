@@ -7516,8 +7516,8 @@ static void run_tests()
 
     // test to_async
     {{
-        long i = 0;
-        long res = 0;
+        int64_t i = 0;
+        int64_t res = 0;
 
         timer timer{};
 
@@ -7526,10 +7526,10 @@ static void run_tests()
                            // and the elements will be yielded via 2048-capacity blocking queue.
                            // (If we wanted the generator and transform to be offloaded to
                            // separate threads, we could insert another to_async() before transform()).
-      % fn::for_each([&](long x) {
+      % fn::for_each([&](int64_t x) {
             res = res + x;
         });
-        VERIFY(res == 500000500000);
+        VERIFY(res == 500000500000LL);
         std::cerr << "to_async throughput: " << double(1000000)/timer << "/s.\n";
     }}
 
