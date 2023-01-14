@@ -5613,7 +5613,7 @@ auto make_tests(UnaryCallable make_inputs) -> std::map<std::string, std::functio
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
-static void run_tests()
+static size_t run_tests(bool verbose=false)
 {
     using fn::operators::operator%;
 
@@ -6404,10 +6404,12 @@ static void run_tests()
         }
     }
     if(num_failed == 0) {
-        std::cerr << "Ran " << num_ok << " tests - OK\n";
+        if (verbose)
+            std::cerr << "rangeless::fn: Ran " << num_ok << " tests - OK\n";
     } else {
         throw std::runtime_error(std::to_string(num_failed) + " tests failed.");
     }
+    return num_ok;
 }
 
 } // namespace impl
@@ -7547,7 +7549,7 @@ static void run_tests()
         VERIFY(total == n);
 
         // of async-tasks (blocking and non-blocking versions)
-        std::cerr << "Queue throughput: "  <<  double(total)/timer << "/s.\n";
+        std::cerr << "Queue throughput:    " << std::fixed << double(total)/timer << "/sec\n";
     }}
 
     // test timeout;
@@ -7585,7 +7587,7 @@ static void run_tests()
             res = res + x;
         });
         VERIFY(res == 500000500000LL);
-        std::cerr << "to_async throughput: " << double(1000000)/timer << "/s.\n";
+        std::cerr << "to_async throughput: " << std::fixed << double(1000000)/timer << "/sec\n";
     }}
 
     // test transform_in_parallel
