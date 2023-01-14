@@ -1263,7 +1263,11 @@ namespace impl
         Container operator()(Container src) && // rvalue-specific because dest will be moved-from
         {
             if(dest.empty()) {
+#if __cplusplus >= 201402L
+                return src; // avoid gcc warning: -Wredundant-move
+#else
                 return std::move(src);
+#endif
             }
 
             for(auto&& x : src) {
@@ -1593,8 +1597,14 @@ namespace impl
 
                 auto ret = map_fn(std::move(*x));
                 impl::recycle(gen, *x, impl::resolve_overload{});
+#if defined(__clang__) && (__clang_major__ < 14)
+                return std::move(ret);
+#elif __cplusplus >= 201402L
+                return ret; // avoid gcc warning: -Wredundant-move
+#else
                 return std::move(ret); // I'd expect copy elision here, but
                                        // GCC4.9.3 tries to use copy-constructor here
+#endif
             }
         };
 
@@ -1847,7 +1857,11 @@ namespace impl
                     found_unsatisfying = true;
                     return { };
                 }
+#if __cplusplus >= 201402L
+                return x; // avoid gcc warning: -Wredundant-move
+#else
                 return std::move(x);
+#endif
             }
         };
 
@@ -2720,7 +2734,13 @@ namespace impl
                     return { };
                 }
 
+#if defined(__clang__) && (__clang_major__ < 14)
                 return std::move(curr);
+#elif __cplusplus >= 201402L
+                return curr; // avoid gcc warning: -Wredundant-move
+#else
+                return std::move(curr);
+#endif
             }
         };
 
@@ -2815,7 +2835,11 @@ namespace impl
                 auto nxt = in_gen(); // not "next" to avoid shadow-warning
                 reached_subend = !nxt || !pred2(key_fn(*current), key_fn(*nxt));
                 std::swap(current, nxt);
+#if __cplusplus >= 201402L
+                return nxt; // avoid gcc warning: -Wredundant-move
+#else
                 return std::move(nxt);
+#endif
             }
 
             maybe<value_type> operator()() // return seq for next group
