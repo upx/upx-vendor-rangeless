@@ -50,7 +50,9 @@
 #endif
 
 
+#ifndef RANGELESS_FN_THROW
 #define RANGELESS_FN_THROW(msg) throw std::logic_error( std::string{} + __FILE__ + ":" + std::to_string(__LINE__) + ": "#msg );
+#endif
 
 namespace rangeless
 {
